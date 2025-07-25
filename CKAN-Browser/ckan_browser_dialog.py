@@ -68,6 +68,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         #self.IDC_lblSuchergebnisse.setText(self.util.tr('py_dlg_base_search_result'))
         self.IDC_lblPage.setText(self.util.tr('py_dlg_base_page_1_1'))
 
+        # データ形式コンボボックスを手入力可能に
+        if hasattr(self, 'IDC_comboFormat'):
+            self.IDC_comboFormat.setEditable(True)
+
         icon_path = self.util.resolve(u'icon-copy.png')
         self.IDC_bCopy.setIcon(QtGui.QIcon(icon_path))
 
@@ -218,8 +222,28 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         #else:
         #    results = result
         results = result['results']
+        # ダイアログで選択されたデータ形式に一致するリソースが1つでもあるデータセットのみ表示
+        format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
+        format_lc = format_text.lower()
+        def is_format_match(res):
+            if format_text == 'すべて':
+                return True
+            if 'format' in res and res['format']:
+                if res['format'].lower() == format_lc:
+                    return True
+            if 'url' in res and res['url']:
+                url = res['url'].lower()
+                if url.endswith('.' + format_lc):
+                    return True
+            return False
 
+        filtered_results = []
         for entry in results:
+            resources = entry.get('resources', [])
+            if any(is_format_match(res) for res in resources):
+                filtered_results.append(entry)
+
+        for entry in filtered_results:
             title_txt = u'no title available'
             if 'title' not in entry:
                 continue
