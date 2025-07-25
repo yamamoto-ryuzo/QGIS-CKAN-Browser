@@ -39,6 +39,24 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class CKANBrowserDialog(QDialog, FORM_CLASS):
+    def update_format_list(self, results):
+        # すべてのリソースからformat値を収集し、重複を除去してリスト化
+        format_set = set()
+        for entry in results:
+            for res in entry.get('resources', []):
+                if 'format' in res and res['format']:
+                    fmt = res['format'].strip()
+                    if fmt:
+                        format_set.add(fmt)
+        format_list = sorted(format_set, key=lambda x: x.lower())
+        # データ形式コンボボックスを自動生成
+        if hasattr(self, 'IDC_comboFormat'):
+            self.IDC_comboFormat.blockSignals(True)
+            self.IDC_comboFormat.clear()
+            self.IDC_comboFormat.addItem('すべて')
+            for fmt in format_list:
+                self.IDC_comboFormat.addItem(fmt)
+            self.IDC_comboFormat.blockSignals(False)
 
     def __init__(self, settings, iface, parent=None):
         """Constructor."""
@@ -122,9 +140,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 for entry in result:
                     item = QListWidgetItem(entry['display_name'])
                     item.setData(Qt.UserRole, entry)
-                    #item.setCheckState(Qt.Checked)
                     item.setCheckState(Qt.Unchecked)
                     self.IDC_listGroup.addItem(item)
+                # サーバーからグループ一覧取得後、全データセットも取得してデータ形式リストを初期化
+                ok, all_result = self.cc.package_search('', None, 1)
+                if ok and 'results' in all_result:
+                    self.update_format_list(all_result['results'])
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -222,18 +243,16 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         #else:
         #    results = result
         results = result['results']
-        # ダイアログで選択されたデータ形式に一致するリソースが1つでもあるデータセットのみ表示
+
+
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         def is_format_match(res):
             if format_text == 'すべて':
                 return True
             if 'format' in res and res['format']:
-                if res['format'].lower() == format_lc:
-                    return True
-            if 'url' in res and res['url']:
-                url = res['url'].lower()
-                if url.endswith('.' + format_lc):
+                fmt = res['format'].strip().lower()
+                if format_lc in fmt or fmt in format_lc:
                     return True
             return False
 
@@ -289,14 +308,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         def is_format_match(res):
             if format_text == 'すべて':
                 return True
-            # formatフィールド
+            # formatフィールドのみ判定（部分一致・空白除去・相互包含）
             if 'format' in res and res['format']:
-                if res['format'].lower() == format_lc:
-                    return True
-            # url拡張子
-            if 'url' in res and res['url']:
-                url = res['url'].lower()
-                if url.endswith('.' + format_lc):
+                fmt = res['format'].strip().lower()
+                if format_lc in fmt or fmt in format_lc:
                     return True
             return False
         resources = package.get('resources', [])
