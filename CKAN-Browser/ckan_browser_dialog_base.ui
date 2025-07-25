@@ -97,6 +97,51 @@
         </layout>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_format">
+         <item>
+          <widget class="QLabel" name="label_format">
+           <property name="text">
+            <string>データ形式</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="IDC_comboFormat">
+           <item>
+            <property name="text">
+             <string>すべて</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>CSV</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>GeoJSON</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Shapefile</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>KML</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>JSON</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <widget class="QPushButton" name="IDC_bSearch">
          <property name="text">
           <string>dlg_base_btn_strt_srch</string>

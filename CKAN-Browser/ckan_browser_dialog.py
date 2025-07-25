@@ -259,15 +259,30 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 package.get('license_id', 'no license_id')
             )
         )
-        if package.get('num_resources', 0) > 0:
-            for res in package['resources']:
-                item = QListWidgetItem(u'{0}: {1}'.format(
-                    res.get('format', 'no format')
-                    , res.get('name', 'no name')
-                ))
-                item.setData(Qt.UserRole, res)
-                item.setCheckState(Qt.Unchecked)
-                self.IDC_listRessources.addItem(item)
+        # データ形式フィルタ
+        format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
+        format_lc = format_text.lower()
+        def is_format_match(res):
+            if format_text == 'すべて':
+                return True
+            # formatフィールド
+            if 'format' in res and res['format']:
+                if res['format'].lower() == format_lc:
+                    return True
+            # url拡張子
+            if 'url' in res and res['url']:
+                url = res['url'].lower()
+                if url.endswith('.' + format_lc):
+                    return True
+            return False
+        resources = package.get('resources', [])
+        filtered_resources = [res for res in resources if is_format_match(res)]
+        for res in filtered_resources:
+            disp = u'{}: {}'.format(res.get('format', 'no format'), res.get('url', '(no url)'))
+            item = QListWidgetItem(disp)
+            item.setData(Qt.UserRole, res)
+            item.setCheckState(Qt.Unchecked)
+            self.IDC_listRessources.addItem(item)
 
     def resource_item_changed(self, new_item):
         if new_item is None:
