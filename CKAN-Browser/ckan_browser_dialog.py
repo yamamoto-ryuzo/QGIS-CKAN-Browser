@@ -47,6 +47,18 @@ class DataFetchThread(QThread):
                                 text_fields.append(str(tag['name']))
                             elif isinstance(tag, str):
                                 text_fields.append(tag)
+                    # author, maintainer, organization も検索対象に追加
+                    if 'author' in entry and entry['author']:
+                        text_fields.append(str(entry['author']))
+                    if 'maintainer' in entry and entry['maintainer']:
+                        text_fields.append(str(entry['maintainer']))
+                    if 'organization' in entry and entry['organization']:
+                        org = entry['organization']
+                        if isinstance(org, dict):
+                            for k in ('name', 'title', 'description'):
+                                v = org.get(k)
+                                if v:
+                                    text_fields.append(str(v))
                     search_hit = any(self.search_txt.lower() in t.lower() for t in text_fields)
                 else:
                     search_hit = True
@@ -377,11 +389,18 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.cur_package = package
         if package is None:
             return
+        org = package.get('organization', {})
+        org_name = org.get('title') or org.get('name') or 'no organization'
+        org_desc = org.get('description', '') if isinstance(org, dict) else ''
         self.IDC_textDetails.setText(
-            u'{0}\n\n{1}\n{2}\n\n{3}'.format(
+            u'{0}\n\nOrganization: {1}\n{2}\n\nAuthor: {3} <{4}>\nMaintainer: {5} <{6}>\n\nLicense: {7}'.format(
                 package.get('notes', 'no notes'),
+                org_name,
+                org_desc,
                 package.get('author', 'no author'),
                 package.get('author_email', 'no author_email'),
+                package.get('maintainer', 'no maintainer'),
+                package.get('maintainer_email', 'no maintainer_email'),
                 package.get('license_id', 'no license_id')
             )
         )
