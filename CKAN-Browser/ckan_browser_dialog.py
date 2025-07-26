@@ -68,6 +68,7 @@ class DataFetchThread(QThread):
 
 import math
 import os
+import sys
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5 import QtGui, uic
 from PyQt5 import QtWidgets
@@ -85,7 +86,10 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 class CKANBrowserDialog(QDialog, FORM_CLASS):
     def update_format_list(self, results):
-        # すべてのリソースからformat値を収集し、重複を除去してリスト化
+        """
+        すべてのリソースからformat値を収集し、重複を除去してリスト化し、formats.jsonに保存
+        """
+        import json
         format_set = set()
         for entry in results:
             for res in entry.get('resources', []):
@@ -94,7 +98,29 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     if fmt:
                         format_set.add(fmt)
         format_list = sorted(format_set, key=lambda x: x.lower())
-        # データ形式コンボボックスを自動生成
+        # formats.jsonに保存
+        # キャッシュディレクトリ未設定時はユーザーのダウンロード/CKAN-Browser配下に作成
+        cache_dir = self.settings.cache_dir
+        if not cache_dir or not os.path.isdir(cache_dir):
+            if sys.platform == 'win32':
+                from pathlib import Path
+                downloads = str(Path.home() / 'Downloads')
+            elif sys.platform == 'darwin':
+                downloads = os.path.expanduser('~/Downloads')
+            else:
+                downloads = os.path.expanduser('~/Downloads')
+            cache_dir = os.path.join(downloads, 'CKAN-Browser')
+            if not os.path.isdir(cache_dir):
+                os.makedirs(cache_dir, exist_ok=True)
+        formats_path = os.path.join(cache_dir, 'formats.json')
+        try:
+            with open(formats_path, 'w', encoding='utf-8') as f:
+                json.dump(format_list, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self.util.msg_log_error(f"formats.json保存エラー: {e}")
+        self.set_format_combobox(format_list)
+
+    def set_format_combobox(self, format_list):
         if hasattr(self, 'IDC_comboFormat'):
             self.IDC_comboFormat.blockSignals(True)
             self.IDC_comboFormat.clear()
@@ -157,6 +183,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.util.msg_log_debug('showevent finished')
 
     def window_loaded(self):
+        import json
         try:
             self.settings.load()
             self.IDC_lblApiUrl.setText(self.util.tr('py_dlg_base_current_server').format(self.settings.ckan_url))
@@ -173,57 +200,90 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
             self.util.msg_log_debug('before get_groups')
 
-            ok, result = self.cc.get_groups()
-            if ok is False:
-                QApplication.restoreOverrideCursor()
-                self.util.dlg_warning(result)
-                return
-
-            if not result:
-                self.list_all_clicked()
+            # formats.jsonがあればそれを使う
+            # キャッシュディレクトリ未設定時はユーザーのダウンロード/CKAN-Browser配下に作成
+            cache_dir = self.settings.cache_dir
+            if not cache_dir or not os.path.isdir(cache_dir):
+                if sys.platform == 'win32':
+                    from pathlib import Path
+                    downloads = str(Path.home() / 'Downloads')
+                elif sys.platform == 'darwin':
+                    downloads = os.path.expanduser('~/Downloads')
+                else:
+                    downloads = os.path.expanduser('~/Downloads')
+                cache_dir = os.path.join(downloads, 'CKAN-Browser')
+                if not os.path.isdir(cache_dir):
+                    os.makedirs(cache_dir, exist_ok=True)
+            formats_path = os.path.join(cache_dir, 'formats.json')
+            if os.path.isfile(formats_path):
+                try:
+                    with open(formats_path, 'r', encoding='utf-8') as f:
+                        format_list = json.load(f)
+                    self.set_format_combobox(format_list)
+                except Exception as e:
+                    self.util.msg_log_error(f"formats.json読込エラー: {e}")
             else:
-                for entry in result:
-                    item = QListWidgetItem(entry['display_name'])
-                    item.setData(Qt.UserRole, entry)
-                    item.setCheckState(Qt.Unchecked)
-                    self.IDC_listGroup.addItem(item)
-                # サーバーからグループ一覧取得後、全データセットも取得してデータ形式リストを初期化（全ページ対応）
-                all_results = []
-                page = 1
-                while True:
-                    ok, page_result = self.cc.package_search('', None, page)
-                    if not ok or 'results' not in page_result:
-                        break
-                    results = page_result['results']
-                    if not results:
-                        break
-                    all_results.extend(results)
-                    # ページ数の計算
-                    if page == 1:
-                        total_count = page_result.get('count', 0)
-                        results_limit = getattr(self.settings, 'results_limit', 50)
-                        max_page = (total_count + results_limit - 1) // results_limit
-                    if page >= max_page:
-                        break
-                    page += 1
-                if all_results:
-                    # SQLiteに保存（設定画面のキャッシュディレクトリに保存）
-                    from qgis.core import QgsMessageLog, Qgis
-                    try:
-                        from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
-                        import os
-                        cache_dir = self.settings.cache_dir or os.getcwd()
-                        if not os.path.isdir(cache_dir):
-                            os.makedirs(cache_dir)
-                        db_path = os.path.join(cache_dir, 'ckan_cache.db')
-                        QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
-                        save_ckan_packages_to_sqlite(db_path, all_results)
-                        QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has finished."), 'CKAN-Browser', Qgis.Info)
-                        self.util.msg_log_debug(self.util.tr(u"Saved {} records to SQLite DB: {}.").format(len(all_results), db_path))
-                    except Exception as e:
-                        QgsMessageLog.logMessage(self.util.tr(u"SQLite save error: {}".format(e)), 'CKAN-Browser', Qgis.Critical)
-                        self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
-                    self.update_format_list(all_results)
+                # formats.jsonがなければ従来通り全件取得して生成
+                ok, result = self.cc.get_groups()
+                if ok is False:
+                    QApplication.restoreOverrideCursor()
+                    self.util.dlg_warning(result)
+                    return
+
+                if not result:
+                    self.list_all_clicked()
+                else:
+                    for entry in result:
+                        item = QListWidgetItem(entry['display_name'])
+                        item.setData(Qt.UserRole, entry)
+                        item.setCheckState(Qt.Unchecked)
+                        self.IDC_listGroup.addItem(item)
+                    # サーバーからグループ一覧取得後、全データセットも取得してデータ形式リストを初期化（全ページ対応）
+                    all_results = []
+                    page = 1
+                    while True:
+                        ok, page_result = self.cc.package_search('', None, page)
+                        if not ok or 'results' not in page_result:
+                            break
+                        results = page_result['results']
+                        if not results:
+                            break
+                        all_results.extend(results)
+                        # ページ数の計算
+                        if page == 1:
+                            total_count = page_result.get('count', 0)
+                            results_limit = getattr(self.settings, 'results_limit', 50)
+                            max_page = (total_count + results_limit - 1) // results_limit
+                        if page >= max_page:
+                            break
+                        page += 1
+                    if all_results:
+                        # SQLiteに保存（設定画面のキャッシュディレクトリに保存）
+                        from qgis.core import QgsMessageLog, Qgis
+                        try:
+                            from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
+                            # キャッシュディレクトリ未設定時はユーザーのダウンロード/CKAN-Browser配下に作成
+                            cache_dir = self.settings.cache_dir
+                            if not cache_dir or not os.path.isdir(cache_dir):
+                                if sys.platform == 'win32':
+                                    from pathlib import Path
+                                    downloads = str(Path.home() / 'Downloads')
+                                elif sys.platform == 'darwin':
+                                    downloads = os.path.expanduser('~/Downloads')
+                                else:
+                                    downloads = os.path.expanduser('~/Downloads')
+                                cache_dir = os.path.join(downloads, 'CKAN-Browser')
+                                if not os.path.isdir(cache_dir):
+                                    os.makedirs(cache_dir, exist_ok=True)
+                            db_path = os.path.join(cache_dir, 'ckan_cache.db')
+                            QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
+                            save_ckan_packages_to_sqlite(db_path, all_results)
+                            QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has finished."), 'CKAN-Browser', Qgis.Info)
+                            self.util.msg_log_debug(self.util.tr(u"Saved {} records to SQLite DB: {}.").format(len(all_results), db_path))
+                        except Exception as e:
+                            QgsMessageLog.logMessage(self.util.tr(u"SQLite save error: {}".format(e)), 'CKAN-Browser', Qgis.Critical)
+                            self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
+                        self.update_format_list(all_results)
         finally:
             QApplication.restoreOverrideCursor()
 
