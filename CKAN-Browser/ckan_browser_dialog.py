@@ -162,11 +162,18 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         break
                     page += 1
                 if all_results:
-                    # SQLiteに保存
+                    # SQLiteに保存（ユーザーのダウンロード/CKAN フォルダに変更）
                     try:
                         from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
-                        db_path = os.path.join(self.settings.cache_dir or os.getcwd(), 'ckan_cache.db')
+                        import os
+                        import pathlib
+                        download_dir = os.path.join(str(pathlib.Path.home()), 'Downloads', 'CKAN')
+                        if not os.path.isdir(download_dir):
+                            os.makedirs(download_dir)
+                        db_path = os.path.join(download_dir, 'ckan_cache.db')
+                        print('データをキャッシュしています...')
                         save_ckan_packages_to_sqlite(db_path, all_results)
+                        print('キャッシュが完了しました')
                         self.util.msg_log_debug(f'SQLite DBに{len(all_results)}件保存: {db_path}')
                     except Exception as e:
                         self.util.msg_log_error(f'SQLite保存エラー: {e}')
@@ -214,18 +221,16 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
     def __search_package(self, page=None):
         self.IDC_listResults.clear()
-        #if self.search_txt == u'' and self.current_group is None:
-        #    return
+        # ページング制御
         if page is not None:
             self.util.msg_log_debug(u'page is not None, cp:{0} pg:{1}'.format(self.current_page, page))
             self.current_page = self.current_page + page
-            if self.current_page > self.page_count:
-                self.current_page = self.page_count
             if self.current_page < 1:
                 self.current_page = 1
+            if self.current_page > self.page_count:
+                self.current_page = self.page_count
             self.util.msg_log_debug(u'page is not None, cp:{0} pg:{1}'.format(self.current_page, page))
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        # データ形式検索を全件（SQLiteキャッシュ）から実施
         import sqlite3
         db_path = os.path.join(self.settings.cache_dir or os.getcwd(), 'ckan_cache.db')
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
@@ -254,14 +259,23 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         except Exception as e:
             self.util.msg_log_error(f'SQLite検索エラー: {e}')
         self.result_count = len(filtered_results)
-        self.current_page = 1
-        self.page_count = 1
+        # ページング計算
+        results_limit = getattr(self.settings, 'results_limit', 50)
+        self.page_count = max(1, (self.result_count + results_limit - 1) // results_limit)
+        # ページ範囲補正
+        if self.current_page < 1:
+            self.current_page = 1
+        if self.current_page > self.page_count:
+            self.current_page = self.page_count
+        start_idx = (self.current_page - 1) * results_limit
+        end_idx = start_idx + results_limit
+        page_results = filtered_results[start_idx:end_idx]
         erg_text = self.util.tr(u'py_dlg_base_result_count').format(self.result_count)
         self.util.msg_log_debug(erg_text)
         page_text = self.util.tr(u'py_dlg_base_page_count').format(self.current_page, self.page_count)
         self.IDC_lblSuchergebnisse.setText(erg_text)
         self.IDC_lblPage.setText(page_text)
-        for entry in filtered_results:
+        for entry in page_results:
             title_txt = u'no title available'
             if 'title' not in entry:
                 continue
