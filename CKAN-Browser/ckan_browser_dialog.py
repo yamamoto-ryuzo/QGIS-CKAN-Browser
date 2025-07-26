@@ -208,6 +208,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     page += 1
                 if all_results:
                     # SQLiteに保存（設定画面のキャッシュディレクトリに保存）
+                    from qgis.core import QgsMessageLog, Qgis
                     try:
                         from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
                         import os
@@ -215,12 +216,13 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         if not os.path.isdir(cache_dir):
                             os.makedirs(cache_dir)
                         db_path = os.path.join(cache_dir, 'ckan_cache.db')
-                        print('データをキャッシュしています...')
+                        QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
                         save_ckan_packages_to_sqlite(db_path, all_results)
-                        print('キャッシュが完了しました')
-                        self.util.msg_log_debug(f'SQLite DBに{len(all_results)}件保存: {db_path}')
+                        QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has finished."), 'CKAN-Browser', Qgis.Info)
+                        self.util.msg_log_debug(self.util.tr(u"Saved {} records to SQLite DB: {}.").format(len(all_results), db_path))
                     except Exception as e:
-                        self.util.msg_log_error(f'SQLite保存エラー: {e}')
+                        QgsMessageLog.logMessage(self.util.tr(u"SQLite save error: {}".format(e)), 'CKAN-Browser', Qgis.Critical)
+                        self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
                     self.update_format_list(all_results)
         finally:
             QApplication.restoreOverrideCursor()
