@@ -75,19 +75,22 @@ class CkanConnector:
             start_query = self.__get_start(page)
         self.util.msg_log_debug(u'start: {0}'.format(start_query))
 
-        # autocomplete http://ckan.data.ktn.gv.at/api/3/action/package_autocomplete?q=wasser
-        # return self.__get_data(u'package_search?q={0}&rows=10'.format(text))
-        # limit results: http://demo.ckan.org/api/3/action/package_search?q=spending&rows=10
-        # several terms: http://demo.ckan.org/api/3/action/term_translation_show?terms=russian&terms=romantic%20novel
+        # 全文検索クエリを組み立て
+        if text and text.strip():
+            # タイトル・説明・タグのOR全文検索
+            q = u'({0}) OR description:{0} OR tags:{0}'.format(text)
+        else:
+            q = ''
+
         return self.__get_data(
-                result,
-                u'action/package_search?q={0}{1}&sort={2}&rows={3}{4}'.format(
-                    text,
-                    group_filter,
-                    self.sort,
-                    self.settings.results_limit,
-                    start_query
-                )
+            result,
+            u'action/package_search?q={0}{1}&sort={2}&rows={3}{4}'.format(
+                q,
+                group_filter,
+                self.sort,
+                self.settings.results_limit,
+                start_query
+            )
         )
 
     def show_group(self, group_name, page=None):

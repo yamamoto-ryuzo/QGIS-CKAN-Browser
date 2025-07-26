@@ -1,15 +1,17 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 # データ取得用QThread
+
 class DataFetchThread(QThread):
     result_ready = pyqtSignal(list, int, int)  # (page_results, result_count, page_count)
 
-    def __init__(self, db_path, format_text, format_lc, current_page, results_limit):
+    def __init__(self, db_path, format_text, format_lc, current_page, results_limit, search_txt=None):
         super().__init__()
         self.db_path = db_path
         self.format_text = format_text
         self.format_lc = format_lc
         self.current_page = current_page
         self.results_limit = results_limit
+        self.search_txt = search_txt or ''
 
     def run(self):
         import sqlite3
@@ -28,10 +30,32 @@ class DataFetchThread(QThread):
             import json
             for row in rows:
                 entry = json.loads(row[0])
-                if self.format_text == 'すべて':
-                    filtered_results.append(entry)
+                # 検索語フィルタ
+                if self.search_txt:
+                    # タイトル・説明・タグなどに部分一致
+                    text_fields = []
+                    if 'title' in entry and entry['title']:
+                        if isinstance(entry['title'], dict):
+                            text_fields.extend(str(v) for v in entry['title'].values())
+                        else:
+                            text_fields.append(str(entry['title']))
+                    if 'notes' in entry and entry['notes']:
+                        text_fields.append(str(entry['notes']))
+                    if 'tags' in entry and entry['tags']:
+                        for tag in entry['tags']:
+                            if isinstance(tag, dict) and 'name' in tag:
+                                text_fields.append(str(tag['name']))
+                            elif isinstance(tag, str):
+                                text_fields.append(tag)
+                    search_hit = any(self.search_txt.lower() in t.lower() for t in text_fields)
                 else:
-                    if any(self.format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])):
+                    search_hit = True
+                # データ形式フィルタ
+                if self.format_text == 'すべて':
+                    if search_hit:
+                        filtered_results.append(entry)
+                else:
+                    if any(self.format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])) and search_hit:
                         filtered_results.append(entry)
             conn.close()
         except Exception as e:
@@ -309,7 +333,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         format_lc = format_text.lower()
         results_limit = getattr(self.settings, 'results_limit', 50)
         # QThreadでデータ取得
-        self.data_thread = DataFetchThread(db_path, format_text, format_lc, self.current_page, results_limit)
+        self.data_thread = DataFetchThread(db_path, format_text, format_lc, self.current_page, results_limit, self.search_txt)
         self.data_thread.result_ready.connect(self._on_data_ready)
         self.data_thread.start()
 
