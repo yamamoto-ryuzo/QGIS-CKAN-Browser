@@ -142,10 +142,27 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     item.setData(Qt.UserRole, entry)
                     item.setCheckState(Qt.Unchecked)
                     self.IDC_listGroup.addItem(item)
-                # サーバーからグループ一覧取得後、全データセットも取得してデータ形式リストを初期化
-                ok, all_result = self.cc.package_search('', None, 1)
-                if ok and 'results' in all_result:
-                    self.update_format_list(all_result['results'])
+                # サーバーからグループ一覧取得後、全データセットも取得してデータ形式リストを初期化（全ページ対応）
+                all_results = []
+                page = 1
+                while True:
+                    ok, page_result = self.cc.package_search('', None, page)
+                    if not ok or 'results' not in page_result:
+                        break
+                    results = page_result['results']
+                    if not results:
+                        break
+                    all_results.extend(results)
+                    # ページ数の計算
+                    if page == 1:
+                        total_count = page_result.get('count', 0)
+                        results_limit = getattr(self.settings, 'results_limit', 50)
+                        max_page = (total_count + results_limit - 1) // results_limit
+                    if page >= max_page:
+                        break
+                    page += 1
+                if all_results:
+                    self.update_format_list(all_results)
         finally:
             QApplication.restoreOverrideCursor()
 
