@@ -162,6 +162,14 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         break
                     page += 1
                 if all_results:
+                    # SQLiteに保存
+                    try:
+                        from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
+                        db_path = os.path.join(self.settings.cache_dir or os.getcwd(), 'ckan_cache.db')
+                        save_ckan_packages_to_sqlite(db_path, all_results)
+                        self.util.msg_log_debug(f'SQLite DBに{len(all_results)}件保存: {db_path}')
+                    except Exception as e:
+                        self.util.msg_log_error(f'SQLite保存エラー: {e}')
                     self.update_format_list(all_results)
         finally:
             QApplication.restoreOverrideCursor()
@@ -217,68 +225,42 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 self.current_page = 1
             self.util.msg_log_debug(u'page is not None, cp:{0} pg:{1}'.format(self.current_page, page))
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        if self.current_group is None:
-            # normal query: limit query to checked groups, or all if unchecked
-            self.util.msg_log_debug(u'normal query')
-            groups = self.__get_selected_groups()
-            ok, result = self.cc.package_search(self.search_txt, groups, self.current_page)
-        else:
-            # double click on group in list, ignore query and return all
-            # packages for group
-            self.util.msg_log_debug(u'query everything for group:{0}'.format(self.current_group))
-            ok, result = self.cc.show_group(self.current_group, self.current_page)
-        QApplication.restoreOverrideCursor()
-        if ok is False:
-            self.util.dlg_warning(result)
-            return
-        #if self.current_group is None:
-        #    self.result_count = result['count']
-        #else:
-        #    self.result_count = len(result)
-        self.result_count = result['count']
-        if self.result_count == 0:
-            self.current_page = 1
-            self.page_count = 1
-            self.IDC_lblSuchergebnisse.setText(self.util.tr('py_dlg_base_search_result_0'))
-            item = QListWidgetItem(self.util.tr('py_dlg_base_no_result'))
-            item.setData(Qt.UserRole, None)
-            self.IDC_listResults.addItem(item)
-            return
-
-        # self.current_page = 1
-        self.page_count = int(math.ceil(self.result_count / self.settings.results_limit))
-        #if self.result_count % self.settings.results_limit != 0:
-        #    self.page_count += 1
+        # データ形式検索を全件（SQLiteキャッシュ）から実施
+        import sqlite3
+        db_path = os.path.join(self.settings.cache_dir or os.getcwd(), 'ckan_cache.db')
+        format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
+        format_lc = format_text.lower()
+        filtered_results = []
+        try:
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            if format_text == 'すべて':
+                c.execute('SELECT raw_json FROM packages')
+            else:
+                c.execute('''SELECT DISTINCT p.raw_json FROM packages p
+                    JOIN resources r ON p.id = r.package_id
+                    WHERE LOWER(r.format) LIKE ?''', (f'%{format_lc}%',))
+            rows = c.fetchall()
+            for row in rows:
+                import json
+                entry = json.loads(row[0])
+                # formatフィルタの厳密化（部分一致）
+                if format_text == 'すべて':
+                    filtered_results.append(entry)
+                else:
+                    if any(format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])):
+                        filtered_results.append(entry)
+            conn.close()
+        except Exception as e:
+            self.util.msg_log_error(f'SQLite検索エラー: {e}')
+        self.result_count = len(filtered_results)
+        self.current_page = 1
+        self.page_count = 1
         erg_text = self.util.tr(u'py_dlg_base_result_count').format(self.result_count)
         self.util.msg_log_debug(erg_text)
         page_text = self.util.tr(u'py_dlg_base_page_count').format(self.current_page, self.page_count)
         self.IDC_lblSuchergebnisse.setText(erg_text)
         self.IDC_lblPage.setText(page_text)
-
-        #if self.current_group is None:
-        #    results = result['results']
-        #else:
-        #    results = result
-        results = result['results']
-
-
-        format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
-        format_lc = format_text.lower()
-        def is_format_match(res):
-            if format_text == 'すべて':
-                return True
-            if 'format' in res and res['format']:
-                fmt = res['format'].strip().lower()
-                if format_lc in fmt or fmt in format_lc:
-                    return True
-            return False
-
-        filtered_results = []
-        for entry in results:
-            resources = entry.get('resources', [])
-            if any(is_format_match(res) for res in resources):
-                filtered_results.append(entry)
-
         for entry in filtered_results:
             title_txt = u'no title available'
             if 'title' not in entry:
@@ -287,10 +269,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             if e is None:
                 title_txt = 'no title'
             elif isinstance(e, dict):
-                # HACK! use first value
                 title_txt = next(iter(list(e.values())))
             elif isinstance(e, list):
-                # HACK! use first value
                 title_txt = e[0]
             else:
                 title_txt = e
