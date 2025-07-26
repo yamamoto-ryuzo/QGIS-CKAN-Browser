@@ -1,3 +1,48 @@
+from PyQt5.QtCore import QThread, pyqtSignal
+# データ取得用QThread
+class DataFetchThread(QThread):
+    result_ready = pyqtSignal(list, int, int)  # (page_results, result_count, page_count)
+
+    def __init__(self, db_path, format_text, format_lc, current_page, results_limit):
+        super().__init__()
+        self.db_path = db_path
+        self.format_text = format_text
+        self.format_lc = format_lc
+        self.current_page = current_page
+        self.results_limit = results_limit
+
+    def run(self):
+        import sqlite3
+        filtered_results = []
+        result_count = 0
+        try:
+            conn = sqlite3.connect(self.db_path)
+            c = conn.cursor()
+            if self.format_text == 'すべて':
+                c.execute('SELECT raw_json FROM packages')
+            else:
+                c.execute('''SELECT DISTINCT p.raw_json FROM packages p
+                    JOIN resources r ON p.id = r.package_id
+                    WHERE LOWER(r.format) LIKE ?''', (f'%{self.format_lc}%',))
+            rows = c.fetchall()
+            import json
+            for row in rows:
+                entry = json.loads(row[0])
+                if self.format_text == 'すべて':
+                    filtered_results.append(entry)
+                else:
+                    if any(self.format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])):
+                        filtered_results.append(entry)
+            conn.close()
+        except Exception as e:
+            # エラー時は空リスト返す
+            filtered_results = []
+        result_count = len(filtered_results)
+        page_count = max(1, (result_count + self.results_limit - 1) // self.results_limit)
+        start_idx = (self.current_page - 1) * self.results_limit
+        end_idx = start_idx + self.results_limit
+        page_results = filtered_results[start_idx:end_idx]
+        self.result_ready.emit(page_results, result_count, page_count)
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
@@ -162,15 +207,14 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         break
                     page += 1
                 if all_results:
-                    # SQLiteに保存（ユーザーのダウンロード/CKAN フォルダに変更）
+                    # SQLiteに保存（設定画面のキャッシュディレクトリに保存）
                     try:
                         from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
                         import os
-                        import pathlib
-                        download_dir = os.path.join(str(pathlib.Path.home()), 'Downloads', 'CKAN')
-                        if not os.path.isdir(download_dir):
-                            os.makedirs(download_dir)
-                        db_path = os.path.join(download_dir, 'ckan_cache.db')
+                        cache_dir = self.settings.cache_dir or os.getcwd()
+                        if not os.path.isdir(cache_dir):
+                            os.makedirs(cache_dir)
+                        db_path = os.path.join(cache_dir, 'ckan_cache.db')
                         print('データをキャッシュしています...')
                         save_ckan_packages_to_sqlite(db_path, all_results)
                         print('キャッシュが完了しました')
@@ -231,50 +275,25 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 self.current_page = self.page_count
             self.util.msg_log_debug(u'page is not None, cp:{0} pg:{1}'.format(self.current_page, page))
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        import sqlite3
         db_path = os.path.join(self.settings.cache_dir or os.getcwd(), 'ckan_cache.db')
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
-        filtered_results = []
-        try:
-            conn = sqlite3.connect(db_path)
-            c = conn.cursor()
-            if format_text == 'すべて':
-                c.execute('SELECT raw_json FROM packages')
-            else:
-                c.execute('''SELECT DISTINCT p.raw_json FROM packages p
-                    JOIN resources r ON p.id = r.package_id
-                    WHERE LOWER(r.format) LIKE ?''', (f'%{format_lc}%',))
-            rows = c.fetchall()
-            for row in rows:
-                import json
-                entry = json.loads(row[0])
-                # formatフィルタの厳密化（部分一致）
-                if format_text == 'すべて':
-                    filtered_results.append(entry)
-                else:
-                    if any(format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])):
-                        filtered_results.append(entry)
-            conn.close()
-        except Exception as e:
-            self.util.msg_log_error(f'SQLite検索エラー: {e}')
-        self.result_count = len(filtered_results)
-        # ページング計算
         results_limit = getattr(self.settings, 'results_limit', 50)
-        self.page_count = max(1, (self.result_count + results_limit - 1) // results_limit)
-        # ページ範囲補正
-        if self.current_page < 1:
-            self.current_page = 1
-        if self.current_page > self.page_count:
-            self.current_page = self.page_count
-        start_idx = (self.current_page - 1) * results_limit
-        end_idx = start_idx + results_limit
-        page_results = filtered_results[start_idx:end_idx]
+        # QThreadでデータ取得
+        self.data_thread = DataFetchThread(db_path, format_text, format_lc, self.current_page, results_limit)
+        self.data_thread.result_ready.connect(self._on_data_ready)
+        self.data_thread.start()
+
+    def _on_data_ready(self, page_results, result_count, page_count):
+        QApplication.restoreOverrideCursor()
+        self.result_count = result_count
+        self.page_count = page_count
         erg_text = self.util.tr(u'py_dlg_base_result_count').format(self.result_count)
         self.util.msg_log_debug(erg_text)
         page_text = self.util.tr(u'py_dlg_base_page_count').format(self.current_page, self.page_count)
         self.IDC_lblSuchergebnisse.setText(erg_text)
         self.IDC_lblPage.setText(page_text)
+        self.IDC_listResults.clear()
         for entry in page_results:
             title_txt = u'no title available'
             if 'title' not in entry:
