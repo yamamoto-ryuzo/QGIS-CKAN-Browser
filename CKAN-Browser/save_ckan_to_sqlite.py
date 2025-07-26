@@ -3,6 +3,7 @@ import os
 import json
 
 def save_ckan_packages_to_sqlite(db_path, packages):
+    # ログ出力は呼び出し元で行うこと
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     # テーブル作成
@@ -50,6 +51,7 @@ def save_ckan_packages_to_sqlite(db_path, packages):
             )
     conn.commit()
     conn.close()
+    # ログ出力は呼び出し元で行うこと
 
 if __name__ == '__main__':
     # 例: all_results = ... (全データセットのリスト)

@@ -244,10 +244,10 @@ class CKANBrowser:
 
 #         self.util.msg_log('cache_dir: {0}'.format(self.settings.cache_dir))
 
-        try: 
+        try:
             QSettings().setValue("ckan_browser/isopen", True)
             self.dlg = CKANBrowserDialog(self.settings, self.iface, self.iface.mainWindow())
-            
+
             # show the dialog
             self.dlg.show()
             #self.dlg.open()
@@ -255,10 +255,8 @@ class CKANBrowser:
             result = self.dlg.exec_()
             # See if OK was pressed
             if result:
-                # Do something useful here - delete the line containing pass and
-                # substitute with your code.
                 pass
-        finally: 
+        finally:
             QSettings().setValue("ckan_browser/isopen", False)
 
     def open_settings(self):
