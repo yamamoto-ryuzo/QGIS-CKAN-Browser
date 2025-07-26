@@ -87,46 +87,34 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 class CKANBrowserDialog(QDialog, FORM_CLASS):
     def update_format_list(self, results):
         """
-        すべてのリソースからformat値を収集し、重複を除去してリスト化し、formats.jsonに保存
+        データ形式リストを一般的な形式+GISでよく使われる形式の固定リストにし、手入力もできるようにする
         """
-        import json
-        format_set = set()
-        for entry in results:
-            for res in entry.get('resources', []):
-                if 'format' in res and res['format']:
-                    fmt = res['format'].strip()
-                    if fmt:
-                        format_set.add(fmt)
-        format_list = sorted(format_set, key=lambda x: x.lower())
-        # formats.jsonに保存
-        # キャッシュディレクトリ未設定時はユーザーのダウンロード/CKAN-Browser配下に作成
-        cache_dir = self.settings.cache_dir
-        if not cache_dir or not os.path.isdir(cache_dir):
-            if sys.platform == 'win32':
-                from pathlib import Path
-                downloads = str(Path.home() / 'Downloads')
-            elif sys.platform == 'darwin':
-                downloads = os.path.expanduser('~/Downloads')
-            else:
-                downloads = os.path.expanduser('~/Downloads')
-            cache_dir = os.path.join(downloads, 'CKAN-Browser')
-            if not os.path.isdir(cache_dir):
-                os.makedirs(cache_dir, exist_ok=True)
-        formats_path = os.path.join(cache_dir, 'formats.json')
-        try:
-            with open(formats_path, 'w', encoding='utf-8') as f:
-                json.dump(format_list, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            self.util.msg_log_error(f"formats.json保存エラー: {e}")
-        self.set_format_combobox(format_list)
+        # 一般的なデータ形式 + GISでよく使われる形式
+        format_list = [
+            'すべて',
+            'csv', 'tsv', 'txt', 'json', 'geojson', 'xml', 'html', 'pdf', 'zip', 'rar', '7z',
+            'xls', 'xlsx',
+            'shp', 'gpkg', 'kml', 'kmz', 'gml',
+            'sqlite', 'rdf',
+            'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg',
+        ]
+        # 重複除去しつつ大文字小文字区別せず整形
+        seen = set()
+        format_list_unique = []
+        for fmt in format_list:
+            key = fmt.lower()
+            if key not in seen:
+                format_list_unique.append(fmt)
+                seen.add(key)
+        self.set_format_combobox(format_list_unique)
 
     def set_format_combobox(self, format_list):
         if hasattr(self, 'IDC_comboFormat'):
             self.IDC_comboFormat.blockSignals(True)
             self.IDC_comboFormat.clear()
-            self.IDC_comboFormat.addItem('すべて')
             for fmt in format_list:
                 self.IDC_comboFormat.addItem(fmt)
+            self.IDC_comboFormat.setEditable(True)  # 手入力可能に
             self.IDC_comboFormat.blockSignals(False)
 
     def __init__(self, settings, iface, parent=None):
