@@ -174,6 +174,68 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         # self.dlg_disclaimer = CKANBrowserDialogDisclaimer(self.settings)
         # self.dlg_dataproviders = CKANBrowserDialogDataProviders(self.settings, self.util)
 
+        # --- 追加: SQLite再取得ボタンのシグナル接続 ---
+        if hasattr(self, 'IDC_bRefreshSqlite'):
+            self.IDC_bRefreshSqlite.clicked.connect(self.refresh_sqlite_clicked)
+    def refresh_sqlite_clicked(self):
+        """
+        全データセットを再取得しSQLiteキャッシュを再作成する
+        """
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            ok, result = self.cc.get_groups()
+            if ok is False:
+                QApplication.restoreOverrideCursor()
+                self.util.dlg_warning(result)
+                return
+            if not result:
+                self.list_all_clicked()
+                return
+            all_results = []
+            page = 1
+            while True:
+                ok, page_result = self.cc.package_search('', None, page)
+                if not ok or 'results' not in page_result:
+                    break
+                results = page_result['results']
+                if not results:
+                    break
+                all_results.extend(results)
+                if page == 1:
+                    total_count = page_result.get('count', 0)
+                    results_limit = getattr(self.settings, 'results_limit', 50)
+                    max_page = (total_count + results_limit - 1) // results_limit
+                if page >= max_page:
+                    break
+                page += 1
+            if all_results:
+                from qgis.core import QgsMessageLog, Qgis
+                try:
+                    from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
+                    cache_dir = self.settings.cache_dir
+                    if not cache_dir or not os.path.isdir(cache_dir):
+                        if sys.platform == 'win32':
+                            from pathlib import Path
+                            downloads = str(Path.home() / 'Downloads')
+                        elif sys.platform == 'darwin':
+                            downloads = os.path.expanduser('~/Downloads')
+                        else:
+                            downloads = os.path.expanduser('~/Downloads')
+                        cache_dir = os.path.join(downloads, 'CKAN-Browser')
+                        if not os.path.isdir(cache_dir):
+                            os.makedirs(cache_dir, exist_ok=True)
+                    db_path = os.path.join(cache_dir, 'ckan_cache.db')
+                    QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
+                    save_ckan_packages_to_sqlite(db_path, all_results)
+                    QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has finished."), 'CKAN-Browser', Qgis.Info)
+                    self.util.msg_log_debug(self.util.tr(u"Saved {} records to SQLite DB: {}.").format(len(all_results), db_path))
+                except Exception as e:
+                    QgsMessageLog.logMessage(self.util.tr(u"SQLite save error: {}".format(e)), 'CKAN-Browser', Qgis.Critical)
+                    self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
+                self.update_format_list(all_results)
+        finally:
+            QApplication.restoreOverrideCursor()
+
 
     def showEvent(self, event):
         self.util.msg_log_debug('showevent')

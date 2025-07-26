@@ -280,6 +280,16 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="IDC_bRefreshSqlite">
+         <property name="text">
+          <string>SQLite再取得</string>
+         </property>
+         <property name="toolTip">
+          <string>全データセットを再取得しSQLiteキャッシュを再作成します</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="IDC_lblVersion">
          <property name="minimumSize">
           <size>
