@@ -11,6 +11,10 @@ https://odhackathon.metro.tokyo.lg.jp/
 Inspired by participation in the Tokyo Open Data Hackathon (Visualization Division), this version aims to make it easier to search, convert, import, and style Tokyo open data in QGIS through enhanced features.
 https://odhackathon.metro.tokyo.lg.jp/
 
+　【参考】
+ 　　渋谷区のオープンデータ（REST）：https://services3.arcgis.com/UtdeFTavkHfI94t2/arcgis/rest/services  
+   　東京都のオープンデータ（CKAN）：https://catalog.data.metro.tokyo.lg.jp/api/3/action/  
+
 ## 概要 / Overview
 QGIS用CKAN-Browserプラグインの拡張・修正版です。
 CKANオープンデータポータルからデータセットを検索・取得し、QGIS上で活用できます。
