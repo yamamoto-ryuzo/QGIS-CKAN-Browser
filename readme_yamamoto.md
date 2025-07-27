@@ -4,6 +4,13 @@
 # CKAN-Browser Plugin (yamamoto version)
 
 
+# 開発方針 / Development Policy
+東京オープンデータハッカソン（ビジュアル部門）への参加をきっかけに、東京オープンデータをQGISで検索・変換・取り込み・装飾まで簡単にできるよう機能強化を行います。
+https://odhackathon.metro.tokyo.lg.jp/
+
+Inspired by participation in the Tokyo Open Data Hackathon (Visual Division), this version aims to make it easier to search, convert, import, and style Tokyo open data in QGIS through enhanced features.
+https://odhackathon.metro.tokyo.lg.jp/
+
 ## 概要 / Overview
 QGIS用CKAN-Browserプラグインの拡張・修正版です。
 CKANオープンデータポータルからデータセットを検索・取得し、QGIS上で活用できます。
