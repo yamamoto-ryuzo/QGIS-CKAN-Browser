@@ -434,7 +434,6 @@ class Util:
         delimiter_counts = {d: 0 for d in delimiters}
         lines = []
         encodings = ['utf-8', 'cp932']
-        detected_encoding = None
         for enc in encodings:
             try:
                 with open(full_path, encoding=enc) as f:
@@ -452,11 +451,9 @@ class Util:
                 # 1位と2位の差が明確な場合のみ採用（例：1位が2位の2倍以上）
                 if len(sorted_delims) > 1 and sorted_delims[0][1] > 0 and sorted_delims[0][1] >= 2 * sorted_delims[1][1]:
                     delimiter = sorted_delims[0][0]
-                    detected_encoding = enc
                     self.msg_log_debug(f"CSV delimiter auto-detected: '{delimiter}' ({delimiter_names.get(delimiter, delimiter)}) [{enc}]")
                 elif sorted_delims[0][1] > 0 and sorted_delims[1][1] == 0:
                     delimiter = sorted_delims[0][0]
-                    detected_encoding = enc
                     self.msg_log_debug(f"CSV delimiter auto-detected (only one type found): '{delimiter}' ({delimiter_names.get(delimiter, delimiter)}) [{enc}]")
                 else:
                     self.msg_log_debug(f"CSV delimiter auto-detect ambiguous: {delimiter_counts} [{enc}]")
@@ -470,40 +467,8 @@ class Util:
         else:
             QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字自動判定に失敗しました: {full_path}\nUTF-8/CP932のいずれでも開けませんでした。")
             return
-        # 緯度経度カラム名の候補
-        lat_names = ['lat', 'latitude', 'y', '緯度', 'LAT', 'Latitude', 'Y']
-        lon_names = ['lon', 'lng', 'long', 'longitude', 'x', '経度', 'LON', 'LONG', 'Longitude', 'X']
-        x_field = None
-        y_field = None
-        # 1行目（ヘッダ）からカラム名を取得
-        header_fields = []
-        if lines:
-            import csv
-            import io
-            # 区切り文字がタブの場合はcsv.readerに渡す前にstr型に変換
-            sample = ''.join(lines)
-            try:
-                reader = csv.reader(io.StringIO(sample), delimiter=delimiter)
-                header_fields = next(reader)
-            except Exception as e:
-                self.msg_log_debug(f"CSV header parse failed: {e}")
-        # カラム名を小文字化して判定
-        lower_fields = [f.strip().lower() for f in header_fields]
-        for lon in lon_names:
-            if lon.lower() in lower_fields:
-                x_field = header_fields[lower_fields.index(lon.lower())]
-                break
-        for lat in lat_names:
-            if lat.lower() in lower_fields:
-                y_field = header_fields[lower_fields.index(lat.lower())]
-                break
-        # QgsVectorLayerのURIにdelimiter, encoding, xField, yFieldパラメータを付与
-        if detected_encoding is None:
-            detected_encoding = 'utf-8'  # 念のため
-        uri = f"file:///{full_path}?delimiter={delimiter}&encoding={detected_encoding}"
-        if x_field and y_field:
-            uri += f"&xField={x_field}&yField={y_field}"
-            self.msg_log_debug(f"CSVジオメトリ自動判定: xField={x_field}, yField={y_field}")
+        # QgsVectorLayerのURIにdelimiterパラメータを付与
+        uri = f"file:///{full_path}?delimiter={delimiter}"
         lyr = QgsVectorLayer(uri, name, "delimitedtext")
         if not lyr.isValid():
             QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの読み込みに失敗しました: {full_path}")
