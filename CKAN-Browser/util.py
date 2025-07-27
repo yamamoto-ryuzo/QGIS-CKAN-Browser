@@ -425,23 +425,61 @@ class Util:
 
 
     def _open_csv(self, full_path):
-        # CSVを属性テーブルとして読み込む（ジオメトリがなければaddVectorLayerを呼ばずaddMapLayerで追加）
+        # CSVを属性テーブルとして読み込む（区切り文字自動判定：カンマ・セミコロン・タブ・コロン・スペース）
         self.msg_log_debug(u'add CSV file: {0}'.format(full_path))
         name = os.path.basename(full_path)
-        # delimitedtextレイヤとして作成
-        lyr = QgsVectorLayer(full_path, name, "delimitedtext")
-        if not lyr.isValid():
-            QMessageBox.warning(self.main_win, self.dlg_caption, "CSVファイルの読み込みに失敗しました: {}".format(full_path))
+        # 区切り文字を自動判定
+        delimiters = [',', ';', '\t', ':', ' ']
+        delimiter_names = {',': 'カンマ', ';': 'セミコロン', '\t': 'タブ', ':': 'コロン', ' ': 'スペース'}
+        delimiter_counts = {d: 0 for d in delimiters}
+        lines = []
+        encodings = ['utf-8', 'cp932']
+        for enc in encodings:
+            try:
+                with open(full_path, encoding=enc) as f:
+                    for _ in range(5):
+                        line = f.readline()
+                        if not line:
+                            break
+                        lines.append(line)
+                # 各区切り文字の出現数をカウント
+                for line in lines:
+                    for d in delimiters:
+                        delimiter_counts[d] += line.count(d)
+                # 最も多く使われている区切り文字を選択
+                sorted_delims = sorted(delimiter_counts.items(), key=lambda x: x[1], reverse=True)
+                # 1位と2位の差が明確な場合のみ採用（例：1位が2位の2倍以上）
+                if len(sorted_delims) > 1 and sorted_delims[0][1] > 0 and sorted_delims[0][1] >= 2 * sorted_delims[1][1]:
+                    delimiter = sorted_delims[0][0]
+                    self.msg_log_debug(f"CSV delimiter auto-detected: '{delimiter}' ({delimiter_names.get(delimiter, delimiter)}) [{enc}]")
+                elif sorted_delims[0][1] > 0 and sorted_delims[1][1] == 0:
+                    delimiter = sorted_delims[0][0]
+                    self.msg_log_debug(f"CSV delimiter auto-detected (only one type found): '{delimiter}' ({delimiter_names.get(delimiter, delimiter)}) [{enc}]")
+                else:
+                    self.msg_log_debug(f"CSV delimiter auto-detect ambiguous: {delimiter_counts} [{enc}]")
+                    QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字が自動判定できませんでした: {full_path}\nカンマ・セミコロン・タブ・コロン・スペースのいずれかで明確に区切られている必要があります。")
+                    return
+                break  # 成功したらループ終了
+            except Exception as e:
+                self.msg_log_debug(f"CSV delimiter auto-detect failed with {enc}: {e}")
+                lines = []
+                delimiter_counts = {d: 0 for d in delimiters}
+        else:
+            QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字自動判定に失敗しました: {full_path}\nUTF-8/CP932のいずれでも開けませんでした。")
             return
-        # ジオメトリがない場合は属性テーブルとして追加
+        # QgsVectorLayerのURIにdelimiterパラメータを付与
+        uri = f"file:///{full_path}?delimiter={delimiter}"
+        lyr = QgsVectorLayer(uri, name, "delimitedtext")
+        if not lyr.isValid():
+            QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの読み込みに失敗しました: {full_path}")
+            return
         if lyr.wkbType() == 100:  # QgsWkbTypes.NoGeometry == 100
             QgsProject.instance().addMapLayer(lyr)
-            self.msg_log_debug("CSVを属性テーブルとして追加しました: {}".format(full_path))
+            self.msg_log_debug(f"CSVを属性テーブルとして追加しました: {full_path} (delimiter={delimiter})")
         else:
-            # ジオメトリがある場合は従来通り
             from qgis.utils import iface
             if iface is not None:
-                iface.addVectorLayer(full_path, name, "delimitedtext")
+                iface.addVectorLayer(uri, name, "delimitedtext")
             else:
                 QMessageBox.warning(self.main_win, self.dlg_caption, "QGISインターフェースが利用できません (iface is None)。CSVレイヤを追加できません。")
 
