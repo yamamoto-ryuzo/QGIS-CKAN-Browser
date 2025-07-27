@@ -425,19 +425,25 @@ class Util:
 
 
     def _open_csv(self, full_path):
-        # Add new HTTPConnection like in source
-        # https://github.com/qgis/QGIS/blob/master/src/gui/qgsnewhttpconnection.cpp
-
+        # CSVを属性テーブルとして読み込む（ジオメトリがなければaddVectorLayerを呼ばずaddMapLayerで追加）
         self.msg_log_debug(u'add CSV file: {0}'.format(full_path))
-
         name = os.path.basename(full_path)
-
-        # create new dialog
-        csv_dlg = QgsProviderRegistry.instance().createSelectionWidget("delimitedtext", self.main_win)
-        csv_dlg.addVectorLayer.connect(lambda url: iface.addVectorLayer(url, name, "delimitedtext"))
-        csv_dlg.children()[1].children()[2].setFilePath(full_path)
-
-        csv_dlg.show()
+        # delimitedtextレイヤとして作成
+        lyr = QgsVectorLayer(full_path, name, "delimitedtext")
+        if not lyr.isValid():
+            QMessageBox.warning(self.main_win, self.dlg_caption, "CSVファイルの読み込みに失敗しました: {}".format(full_path))
+            return
+        # ジオメトリがない場合は属性テーブルとして追加
+        if lyr.wkbType() == 100:  # QgsWkbTypes.NoGeometry == 100
+            QgsProject.instance().addMapLayer(lyr)
+            self.msg_log_debug("CSVを属性テーブルとして追加しました: {}".format(full_path))
+        else:
+            # ジオメトリがある場合は従来通り
+            from qgis.utils import iface
+            if iface is not None:
+                iface.addVectorLayer(full_path, name, "delimitedtext")
+            else:
+                QMessageBox.warning(self.main_win, self.dlg_caption, "QGISインターフェースが利用できません (iface is None)。CSVレイヤを追加できません。")
 
 
     def __open_with_system(self, file_name):
