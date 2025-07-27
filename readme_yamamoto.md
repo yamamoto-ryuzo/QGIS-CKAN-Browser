@@ -12,8 +12,8 @@ Inspired by participation in the Tokyo Open Data Hackathon (Visualization Divisi
 https://odhackathon.metro.tokyo.lg.jp/
 
 　【参考】  
- 　　渋谷区のオープンデータ（REST）：https://services3.arcgis.com/UtdeFTavkHfI94t2/arcgis/rest/services  
-   　東京都のオープンデータ（CKAN）：https://catalog.data.metro.tokyo.lg.jp/api/3/action/  
+　　　渋谷区のオープンデータ（REST）：https://services3.arcgis.com/UtdeFTavkHfI94t2/arcgis/rest/services  
+　　　東京都のオープンデータ（CKAN）：https://catalog.data.metro.tokyo.lg.jp/api/3/action/  
 
 ## 概要 / Overview
 QGIS用CKAN-Browserプラグインの拡張・修正版です。
