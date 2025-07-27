@@ -470,10 +470,40 @@ class Util:
         else:
             QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字自動判定に失敗しました: {full_path}\nUTF-8/CP932のいずれでも開けませんでした。")
             return
-        # QgsVectorLayerのURIにdelimiterとencodingパラメータを付与
+        # 緯度経度カラム名の候補
+        lat_names = ['lat', 'latitude', 'y', '緯度', 'LAT', 'Latitude', 'Y']
+        lon_names = ['lon', 'lng', 'long', 'longitude', 'x', '経度', 'LON', 'LONG', 'Longitude', 'X']
+        x_field = None
+        y_field = None
+        # 1行目（ヘッダ）からカラム名を取得
+        header_fields = []
+        if lines:
+            import csv
+            import io
+            # 区切り文字がタブの場合はcsv.readerに渡す前にstr型に変換
+            sample = ''.join(lines)
+            try:
+                reader = csv.reader(io.StringIO(sample), delimiter=delimiter)
+                header_fields = next(reader)
+            except Exception as e:
+                self.msg_log_debug(f"CSV header parse failed: {e}")
+        # カラム名を小文字化して判定
+        lower_fields = [f.strip().lower() for f in header_fields]
+        for lon in lon_names:
+            if lon.lower() in lower_fields:
+                x_field = header_fields[lower_fields.index(lon.lower())]
+                break
+        for lat in lat_names:
+            if lat.lower() in lower_fields:
+                y_field = header_fields[lower_fields.index(lat.lower())]
+                break
+        # QgsVectorLayerのURIにdelimiter, encoding, xField, yFieldパラメータを付与
         if detected_encoding is None:
             detected_encoding = 'utf-8'  # 念のため
         uri = f"file:///{full_path}?delimiter={delimiter}&encoding={detected_encoding}"
+        if x_field and y_field:
+            uri += f"&xField={x_field}&yField={y_field}"
+            self.msg_log_debug(f"CSVジオメトリ自動判定: xField={x_field}, yField={y_field}")
         lyr = QgsVectorLayer(uri, name, "delimitedtext")
         if not lyr.isValid():
             QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの読み込みに失敗しました: {full_path}")
