@@ -1,49 +1,126 @@
 
 
 import os
+
+
+import os
+import re
 import zipfile
-import fnmatch
+import shutil
+from configparser import ConfigParser
 
-# 配布対象ディレクトリとZIP名
+# Windowsのごみ箱へ移動（pip不要）
+import sys
+def move_to_trash(filepath):
+    if sys.platform.startswith('win'):
+        import ctypes
+        from ctypes import wintypes
+        class SHFILEOPSTRUCTW(ctypes.Structure):
+            _fields_ = [
+                ('hwnd', wintypes.HWND),
+                ('wFunc', wintypes.UINT),
+                ('pFrom', wintypes.LPCWSTR),
+                ('pTo', wintypes.LPCWSTR),
+                ('fFlags', ctypes.c_ushort),  # 修正: FILEOP_FLAGS → c_ushort
+                ('fAnyOperationsAborted', wintypes.BOOL),
+                ('hNameMappings', wintypes.LPVOID),
+                ('lpszProgressTitle', wintypes.LPCWSTR),
+            ]
+        FO_DELETE = 3
+        FOF_ALLOWUNDO = 0x40
+        FOF_NOCONFIRMATION = 0x10
+        op = SHFILEOPSTRUCTW()
+        op.hwnd = 0
+        op.wFunc = FO_DELETE
+        op.pFrom = filepath + '\0\0'
+        op.pTo = None
+        op.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION
+        op.fAnyOperationsAborted = False
+        op.hNameMappings = None
+        op.lpszProgressTitle = None
+        res = ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op))
+        return res == 0
+    else:
+        # 非Windowsは完全削除
+        os.remove(filepath)
+        return True
+
 PLUGIN_DIR = 'CKAN-Browser'
-ZIP_NAME = 'CKANBrowser.zip'
+META_FILE = 'metadata_yamamoto.txt'
+ZIP_PREFIX = 'CKANBrowser_yamamoto_'
 
-# ルートに含める追加ファイル
-INCLUDE = [
-    'LICENSE',
-    'plugins.xml',
-    'README.md',
+# 必要最小限のファイル・ディレクトリ
+INCLUDE_FILES = [
+    'CKAN-Browser',
+    'metadata_yamamoto.txt',
+    'Changlog_yamamoto.txt',
+    'readme_yamamoto.txt',
+    'readme_yamamoto.md',
 ]
 
-# 除外パターン
-EXCLUDE_DIRS = {'__pycache__', '.git', 'scripts', 'img', 'tests'}
-EXCLUDE_FILES = {'build.sh', 'Makefile', 'pylintrc', 'logo-license.txt'}
-EXCLUDE_PATTERNS = ['*.pyc', '*.pyo', '*.zip', '.DS_Store']
+def parse_version(verstr):
+    m = re.match(r'V?(\d+)\.(\d+)\.(\d+)', verstr)
+    if not m:
+        raise ValueError('Invalid version string: ' + verstr)
+    return tuple(map(int, m.groups()))
 
-def should_exclude(name):
-    for pat in EXCLUDE_PATTERNS:
-        if fnmatch.fnmatch(name, pat):
-            return True
-    return False
+def bump_patch(ver):
+    a, b, c = ver
+    return (a, b, c+1)
 
-def zip_plugin_dir(ziph, plugin_dir):
-    for root, dirs, files in os.walk(plugin_dir):
-        # 除外ディレクトリ
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
-        for file in files:
-            if file in EXCLUDE_FILES or should_exclude(file):
-                continue
-            abs_path = os.path.join(root, file)
-            rel_path = os.path.relpath(abs_path, os.path.dirname(plugin_dir))
-            ziph.write(abs_path, rel_path)
+def version_to_str(ver):
+    return f'V{ver[0]}.{ver[1]}.{ver[2]}'
 
 def main():
-    with zipfile.ZipFile(ZIP_NAME, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zip_plugin_dir(zipf, PLUGIN_DIR)
-        for item in INCLUDE:
-            if os.path.isfile(item):
-                zipf.write(item, os.path.basename(item))
-    print(f'{ZIP_NAME} を作成しました（CKAN-Browserディレクトリごと格納）')
+    # metadata_yamamoto.txtからバージョン取得
+    cp = ConfigParser()
+    cp.read(META_FILE, encoding='utf-8')
+    verstr = cp.get('general', 'version')
+    ver = parse_version(verstr)
+    new_ver = bump_patch(ver)
+    new_verstr = version_to_str(new_ver)
+
+    # metadata_yamamoto.txtのバージョン書き換え
+    with open(META_FILE, encoding='utf-8') as f:
+        lines = f.readlines()
+    with open(META_FILE, 'w', encoding='utf-8') as f:
+        for line in lines:
+            if line.strip().startswith('version='):
+                f.write(f'version={new_verstr}\n')
+            else:
+                f.write(line)
+
+    # 旧ZIP削除（ごみ箱へ移動、pip不要）
+    for fname in os.listdir('.'):
+        if fname.startswith(ZIP_PREFIX) and fname.endswith('.zip'):
+            move_to_trash(fname)
+
+    # 一時作業ディレクトリ作成
+    tmp_dir = f'{PLUGIN_DIR}_tmp_pack'
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
+    os.makedirs(tmp_dir)
+
+    # プラグインフォルダ配下に必要ファイルをコピー
+    for item in INCLUDE_FILES:
+        if os.path.isdir(item):
+            shutil.copytree(item, os.path.join(tmp_dir, item))
+        elif os.path.isfile(item):
+            shutil.copy2(item, os.path.join(tmp_dir, item))
+
+    # ZIP作成
+    zipname = f'{ZIP_PREFIX}{new_ver[0]}.{new_ver[1]}.{new_ver[2]}.zip'
+    with zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(tmp_dir):
+            for file in files:
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, tmp_dir)
+                zf.write(abs_path, rel_path)
+
+    # 作業ディレクトリ削除
+    shutil.rmtree(tmp_dir)
+    print(f'Created: {zipname}')
+    print(f'Updated {META_FILE} to version {new_verstr}')
 
 if __name__ == '__main__':
     main()
