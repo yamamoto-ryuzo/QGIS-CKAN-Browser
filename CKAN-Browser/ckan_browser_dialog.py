@@ -275,8 +275,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
     def window_loaded(self):
         try:
             self.settings.load()
-            self.IDC_lblApiUrl.setText(self.util.tr('py_dlg_base_current_server').format(self.settings.ckan_url))
-            self.IDC_lblCacheDir.setText(self.util.tr('py_dlg_base_cache_path').format(self.settings.cache_dir))
+            self.IDC_lblApiUrl.setText(self.util.tr('Current server: {0}').format(self.settings.ckan_url))
+            self.IDC_lblCacheDir.setText(self.util.tr('Cache path: {0}').format(self.settings.cache_dir))
             if self.timer is not None:
                 self.timer.stop()
                 self.timer = None
@@ -289,13 +289,13 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
             self.util.msg_log_debug('before get_groups')
 
-            # カテゴリ（グループ）リストを取得して追加（デバッグ出力付き）
+            # Get and add category (group) list (with debug output)
             ok, result = self.cc.get_groups()
             self.util.msg_log_debug(f'get_groups ok={ok}, result={result}')
             if not ok:
-                self.util.dlg_warning(f'カテゴリ取得失敗: {result}')
+                self.util.dlg_warning(self.util.tr('Failed to get categories: {0}').format(result))
             elif not result:
-                self.util.dlg_warning('カテゴリリストが空です。CKANサーバやネットワーク設定を確認してください。')
+                self.util.dlg_warning(self.util.tr('Category list is empty. Please check CKAN server or network settings.'))
             else:
                 from PyQt5.QtCore import Qt
                 from PyQt5.QtWidgets import QListWidgetItem
@@ -311,7 +311,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         item.setData(Qt.UserRole, {'name': str(group)})
                     item.setCheckState(Qt.Unchecked)
                     self.IDC_listGroup.addItem(item)
-            # データ形式リストは固定リストのみ
+            # Data format list is fixed only
             self.update_format_list(None)
         finally:
             QApplication.restoreOverrideCursor()

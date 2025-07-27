@@ -237,7 +237,7 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="200"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Warning: &lt;/span&gt;if this option is enabled, the same authentication configuration will be implicitely propagated to &lt;span style=&quot; font-weight:600;&quot;&gt;all&lt;/span&gt; OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Warnung: &lt;/span&gt;Wenn diese Option aktiviert ist, wird die gleiche Authentifizierungskonfiguration implizit auf &lt;span style=&quot; font-weight:600;&quot;&gt;alle&lt;/span&gt; OGC-Layer (WMS, WFS ...) angewendet, die von diesem Katalog zurückgegeben werden. Dies kann dazu führen, dass Anmeldedaten an Endpunkte weitergegeben werden, die nicht für die gleiche Authentifizierungskonfiguration vorgesehen sind.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="203"/>
@@ -431,12 +431,12 @@
     <message>
         <location filename="../ckan_browser.py" line="194"/>
         <source>&amp;Open Data (CKAN) Browser</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Open Data (CKAN) Browser</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="175"/>
         <source>Open Data (CKAN) Browser</source>
-        <translation></translation>
+        <translation>Open Data (CKAN) Browser</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="184"/>

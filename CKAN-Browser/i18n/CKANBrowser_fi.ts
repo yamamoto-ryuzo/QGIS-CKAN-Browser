@@ -126,22 +126,22 @@
     <message>
         <location filename="../ckan_browser_dialog_base.ui" line="259"/>
         <source>dlg_base_btn_select_dataprovider</source>
-        <translation type="unfinished"></translation>
+        <translation>Valitse CKAN-palvelin</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_base.ui" line="208"/>
         <source>dlg_base_current_server</source>
-        <translation type="unfinished"></translation>
+        <translation>Nykyinen palvelin</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_base.ui" line="230"/>
         <source>dlg_base_lbl_cache_dir</source>
-        <translation type="unfinished"></translation>
+        <translation>Välimuistin hakemisto</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_base.ui" line="252"/>
         <source>dlg_base_lbl_plugin_version</source>
-        <translation type="unfinished"></translation>
+        <translation>Lisäosan versio: {}</translation>
     </message>
 </context>
 <context>
@@ -149,37 +149,37 @@
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="26"/>
         <source>dlg_dataproviders_title</source>
-        <translation type="unfinished"></translation>
+        <translation>CKAN-palvelimet</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="38"/>
         <source>dlg_dataproviders_grp_manual</source>
-        <translation type="unfinished"></translation>
+        <translation>Lisää uusi CKAN-palvelin</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="50"/>
         <source>dlg_dataproviders_lbl_enter_dataprovider_url</source>
-        <translation type="unfinished"></translation>
+        <translation>CKAN API -päätepiste, esim: https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="63"/>
         <source>dlg_dataproviders_btn_test_connection</source>
-        <translation type="unfinished"></translation>
+        <translation>Testaa yhteys</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="70"/>
         <source>dlg_dataproviders_btn_add_connection</source>
-        <translation type="unfinished"></translation>
+        <translation>Lisää CKAN-palvelin listaan</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="96"/>
         <source>dlg_dataproviders_lbl_search_for_provider</source>
-        <translation type="unfinished"></translation>
+        <translation>Etsi CKAN-palvelimia - lista: https://ckan.org/about/instances/</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="106"/>
         <source>dlg_dataproviders_lbl_nr_of_instances</source>
-        <translation type="unfinished"></translation>
+        <translation>{} / {} valittavissa (muilla ei ole API-osoitetta)</translation>
     </message>
 </context>
 <context>
@@ -217,7 +217,7 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="150"/>
         <source>Authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>Todennus</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="68"/>
@@ -227,42 +227,42 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="177"/>
         <source>Clear</source>
-        <translation type="unfinished"></translation>
+        <translation>Tyhjennä</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="170"/>
         <source>Edit</source>
-        <translation type="unfinished"></translation>
+        <translation>Muokkaa</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="200"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Warning: &lt;/span&gt;if this option is enabled, the same authentication configuration will be implicitely propagated to &lt;span style=&quot; font-weight:600;&quot;&gt;all&lt;/span&gt; OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Varoitus: &lt;/span&gt;Jos tämä asetus on käytössä, sama todennusasetukset välittyvät automaattisesti kaikille tämän luettelon palauttamille OGC-tasoille (WMS, WFS ...). Tämä voi vuotaa tunnistetietoja kohdepisteeseen, jos sen ei ole tarkoitus käyttää samoja todennusasetuksia.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="203"/>
         <source>Use the same authentication settings for all OGC layers</source>
-        <translation type="unfinished"></translation>
+        <translation>Käytä samoja todennusasetuksia kaikille OGC-tasoille</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="38"/>
         <source>dlg_settings_grp_cache_folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Välimuistikansio</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="144"/>
         <source>dlg_settings_grp_authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>Todennusasetukset</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="213"/>
         <source>dlg_settings_grpbox_misc</source>
-        <translation type="unfinished"></translation>
+        <translation>Muut</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="225"/>
         <source>dlg_settings_chkbox_show_debug_info</source>
-        <translation type="unfinished"></translation>
+        <translation>Näytä virheilmoitukset 'Lokiviestit'-paneelissa</translation>
     </message>
 </context>
 <context>
@@ -426,17 +426,17 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.py" line="117"/>
         <source>Select Authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>Valitse todennus</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="194"/>
         <source>&amp;Open Data (CKAN) Browser</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Avoin Data (CKAN) Selain</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="175"/>
         <source>Open Data (CKAN) Browser</source>
-        <translation type="unfinished"></translation>
+        <translation>Avoin Data (CKAN) Selain</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="184"/>

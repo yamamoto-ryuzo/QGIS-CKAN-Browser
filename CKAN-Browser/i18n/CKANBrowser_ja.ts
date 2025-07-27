@@ -124,24 +124,52 @@
         <translation>?</translation>
     </message>
     <message>
-        <location filename="../ckan_browser_dialog_base.ui" line="259"/>
-        <source>dlg_base_btn_select_dataprovider</source>
-        <translation type="unfinished"></translation>
+        <source>Current server: {0}</source>
+        <translation>現在のサーバー: {0}</translation>
     </message>
     <message>
-        <location filename="../ckan_browser_dialog_base.ui" line="208"/>
-        <source>dlg_base_current_server</source>
-        <translation type="unfinished"></translation>
+        <source>Cache path: {0}</source>
+        <translation>キャッシュパス: {0}</translation>
     </message>
     <message>
-        <location filename="../ckan_browser_dialog_base.ui" line="230"/>
-        <source>dlg_base_lbl_cache_dir</source>
-        <translation type="unfinished"></translation>
+        <source>Failed to get categories: {0}</source>
+        <translation>カテゴリ取得失敗: {0}</translation>
     </message>
     <message>
-        <location filename="../ckan_browser_dialog_base.ui" line="252"/>
-        <source>dlg_base_lbl_plugin_version</source>
-        <translation type="unfinished"></translation>
+        <source>Category list is empty. Please check CKAN server or network settings.</source>
+        <translation>カテゴリリストが空です。CKANサーバやネットワーク設定を確認してください。</translation>
+    </message>
+    <message>
+        <source>Data provider selection</source>
+        <translation>データプロバイダ選択</translation>
+    </message>
+    <message>
+        <source>Plugin version</source>
+        <translation>プラグインバージョン</translation>
+    </message>
+    <message>
+        <source>Manual settings</source>
+        <translation>手動設定</translation>
+    </message>
+    <message>
+        <source>Enter data provider URL</source>
+        <translation>データプロバイダURLを入力</translation>
+    </message>
+    <message>
+        <source>Test connection</source>
+        <translation>接続テスト</translation>
+    </message>
+    <message>
+        <source>Add connection</source>
+        <translation>接続追加</translation>
+    </message>
+    <message>
+        <source>Provider search</source>
+        <translation>プロバイダ検索</translation>
+    </message>
+    <message>
+        <source>Number of instances</source>
+        <translation>インスタンス数</translation>
     </message>
 </context>
 <context>
@@ -149,37 +177,37 @@
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="26"/>
         <source>dlg_dataproviders_title</source>
-        <translation type="unfinished"></translation>
+        <translation>データプロバイダ設定</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="38"/>
         <source>dlg_dataproviders_grp_manual</source>
-        <translation type="unfinished"></translation>
+        <translation>手動設定</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="50"/>
         <source>dlg_dataproviders_lbl_enter_dataprovider_url</source>
-        <translation type="unfinished"></translation>
+        <translation>データプロバイダURLを入力</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="63"/>
         <source>dlg_dataproviders_btn_test_connection</source>
-        <translation type="unfinished"></translation>
+        <translation>接続テスト</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="70"/>
         <source>dlg_dataproviders_btn_add_connection</source>
-        <translation type="unfinished"></translation>
+        <translation>接続追加</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="96"/>
         <source>dlg_dataproviders_lbl_search_for_provider</source>
-        <translation type="unfinished"></translation>
+        <translation>プロバイダ検索</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.ui" line="106"/>
         <source>dlg_dataproviders_lbl_nr_of_instances</source>
-        <translation type="unfinished"></translation>
+        <translation>インスタンス数</translation>
     </message>
 </context>
 <context>
@@ -217,7 +245,7 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="150"/>
         <source>Authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>認証</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="68"/>
@@ -227,42 +255,42 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="177"/>
         <source>Clear</source>
-        <translation type="unfinished"></translation>
+        <translation>クリア</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="170"/>
         <source>Edit</source>
-        <translation type="unfinished"></translation>
+        <translation>編集</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="200"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Warning: &lt;/span&gt;if this option is enabled, the same authentication configuration will be implicitely propagated to &lt;span style=&quot; font-weight:600;&quot;&gt;all&lt;/span&gt; OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;警告: &lt;/span&gt;このオプションを有効にすると、同じ認証設定がこのカタログで返される &lt;span style=&quot; font-weight:600;&quot;&gt;すべての&lt;/span&gt; OGCレイヤー（WMS, WFS ...）に自動的に適用されます。これにより、同じ認証設定を使うべきでないエンドポイントに認証情報が漏れる可能性があります。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="203"/>
         <source>Use the same authentication settings for all OGC layers</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのOGCレイヤーで同じ認証設定を使用する</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="38"/>
         <source>dlg_settings_grp_cache_folder</source>
-        <translation type="unfinished"></translation>
+        <translation>キャッシュフォルダ</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="144"/>
         <source>dlg_settings_grp_authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>認証</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="213"/>
         <source>dlg_settings_grpbox_misc</source>
-        <translation type="unfinished"></translation>
+        <translation>その他</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.ui" line="225"/>
         <source>dlg_settings_chkbox_show_debug_info</source>
-        <translation type="unfinished"></translation>
+        <translation>デバッグ情報を表示</translation>
     </message>
 </context>
 <context>
@@ -426,17 +454,17 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.py" line="117"/>
         <source>Select Authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>認証を選択</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="194"/>
         <source>&amp;Open Data (CKAN) Browser</source>
-        <translation type="unfinished"></translation>
+        <translation>オープンデータ(CKAN)ブラウザ(&amp;O)</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="175"/>
         <source>Open Data (CKAN) Browser</source>
-        <translation type="unfinished"></translation>
+        <translation>オープンデータ(CKAN)ブラウザ</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="184"/>
@@ -446,37 +474,37 @@
     <message>
         <location filename="../ckan_browser_dialog.py" line="96"/>
         <source>py_dlg_base_current_server</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のサーバー</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog.py" line="97"/>
         <source>py_dlg_base_cache_path</source>
-        <translation type="unfinished"></translation>
+        <translation>キャッシュパス</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="297"/>
         <source>py_dlg_data_providers_no_server_selected</source>
-        <translation type="unfinished"></translation>
+        <translation>サーバーが選択されていません</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="166"/>
         <source>py_dlg_data_providers_cannot_delete_sever_from_official_list</source>
-        <translation type="unfinished"></translation>
+        <translation>公式リストからサーバーを削除できません</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="237"/>
         <source>py_dlg_data_providers_custom_server</source>
-        <translation type="unfinished"></translation>
+        <translation>カスタムサーバー</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="237"/>
         <source>py_dlg_data_providers_name_custom_server</source>
-        <translation type="unfinished"></translation>
+        <translation>カスタムサーバー名</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="249"/>
         <source>py_dlg_data_providers_custom_server_name_exists</source>
-        <translation type="unfinished"></translation>
+        <translation>同じ名前のカスタムサーバーが既に存在します</translation>
     </message>
 </context>
 </TS>

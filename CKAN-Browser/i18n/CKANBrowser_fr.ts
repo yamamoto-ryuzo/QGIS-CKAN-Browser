@@ -366,17 +366,17 @@
     <message>
         <location filename="../ckan_browser_dialog.py" line="450"/>
         <source>dlg_base_ttip_resource</source>
-        <translation>URL de la resource sélectionnée</translation>
+        <translation>URL de la ressource sélectionnée</translation>
     </message>
     <message>
         <location filename="../ckanconnector.py" line="150"/>
         <source>cc_url_error</source>
-        <translation>Erreurr URL&lt;br /&gt; {0} &lt;br /&gt;&lt;br /&gt;{1}</translation>
+        <translation>Erreur URL&lt;br /&gt; {0} &lt;br /&gt;&lt;br /&gt;{1}</translation>
     </message>
     <message>
         <location filename="../ckanconnector.py" line="368"/>
         <source>cc_connection_timeout</source>
-        <translation>Connection Timeout:&lt;br /&gt;&lt;br /&gt;{0}</translation>
+        <translation>Délai de connexion dépassé :&lt;br /&gt;&lt;br /&gt;{0}</translation>
     </message>
     <message>
         <location filename="../ckanconnector.py" line="332"/>
@@ -411,7 +411,7 @@
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="222"/>
         <source>py_dlg_set_info_conn_succs</source>
-        <translation>Connection réussi</translation>
+        <translation>Connexion réussie</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_settings.py" line="94"/>
@@ -426,57 +426,57 @@
     <message>
         <location filename="../ckan_browser_dialog_settings.py" line="117"/>
         <source>Select Authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>Sélectionner l'authentification</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="194"/>
         <source>&amp;Open Data (CKAN) Browser</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Navigateur Open Data (CKAN)</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="175"/>
         <source>Open Data (CKAN) Browser</source>
-        <translation type="unfinished">Open Data (CKAN) Browser</translation>
+        <translation>Navigateur Open Data (CKAN)</translation>
     </message>
     <message>
         <location filename="../ckan_browser.py" line="184"/>
         <source>ckan_browser_settings</source>
-        <translation>Paramétres</translation>
+        <translation>Paramètres</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog.py" line="96"/>
         <source>py_dlg_base_current_server</source>
-        <translation type="unfinished"></translation>
+        <translation>Serveur actuel : {}</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog.py" line="97"/>
         <source>py_dlg_base_cache_path</source>
-        <translation type="unfinished"></translation>
+        <translation>Chemin du cache : {}</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="297"/>
         <source>py_dlg_data_providers_no_server_selected</source>
-        <translation type="unfinished"></translation>
+        <translation>Aucun serveur sélectionné</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="166"/>
         <source>py_dlg_data_providers_cannot_delete_sever_from_official_list</source>
-        <translation type="unfinished"></translation>
+        <translation>Impossible de supprimer le serveur de la liste officielle CKAN</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="237"/>
         <source>py_dlg_data_providers_custom_server</source>
-        <translation type="unfinished"></translation>
+        <translation>Serveur CKAN personnalisé</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="237"/>
         <source>py_dlg_data_providers_name_custom_server</source>
-        <translation type="unfinished"></translation>
+        <translation>Nom de votre serveur CKAN :</translation>
     </message>
     <message>
         <location filename="../ckan_browser_dialog_dataproviders.py" line="249"/>
         <source>py_dlg_data_providers_custom_server_name_exists</source>
-        <translation type="unfinished"></translation>
+        <translation>Un serveur avec ce nom existe déjà : {}</translation>
     </message>
 </context>
 </TS>
