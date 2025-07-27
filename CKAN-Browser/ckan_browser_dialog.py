@@ -1,10 +1,11 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 # データ取得用QThread
 
+
 class DataFetchThread(QThread):
     result_ready = pyqtSignal(list, int, int)  # (page_results, result_count, page_count)
 
-    def __init__(self, db_path, format_text, format_lc, current_page, results_limit, search_txt=None):
+    def __init__(self, db_path, format_text, format_lc, current_page, results_limit, search_txt=None, group_names=None):
         super().__init__()
         self.db_path = db_path
         self.format_text = format_text
@@ -12,6 +13,7 @@ class DataFetchThread(QThread):
         self.current_page = current_page
         self.results_limit = results_limit
         self.search_txt = search_txt or ''
+        self.group_names = group_names  # 追加: グループ名リスト
 
     def run(self):
         import sqlite3
@@ -20,19 +22,23 @@ class DataFetchThread(QThread):
         try:
             conn = sqlite3.connect(self.db_path)
             c = conn.cursor()
-            if self.format_text == 'すべて':
-                c.execute('SELECT raw_json FROM packages')
-            else:
-                c.execute('''SELECT DISTINCT p.raw_json FROM packages p
-                    JOIN resources r ON p.id = r.package_id
-                    WHERE LOWER(r.format) LIKE ?''', (f'%{self.format_lc}%',))
+            # まず全件取得（形式フィルタは後でPython側で）
+            c.execute('SELECT raw_json FROM packages')
             rows = c.fetchall()
             import json
             for row in rows:
                 entry = json.loads(row[0])
+                # カテゴリ（グループ）フィルタ
+                group_match = True
+                if self.group_names is not None:
+                    # entry['groups']はリスト（各要素はdictで'name'キーあり）
+                    entry_groups = [g['name'] for g in entry.get('groups', []) if 'name' in g]
+                    # 1つでも一致すればOK（OR条件）
+                    group_match = any(g in entry_groups for g in self.group_names)
+                if not group_match:
+                    continue
                 # 検索語フィルタ
                 if self.search_txt:
-                    # タイトル・説明・タグなどに部分一致
                     text_fields = []
                     if 'title' in entry and entry['title']:
                         if isinstance(entry['title'], dict):
@@ -47,7 +53,6 @@ class DataFetchThread(QThread):
                                 text_fields.append(str(tag['name']))
                             elif isinstance(tag, str):
                                 text_fields.append(tag)
-                    # author, maintainer, organization も検索対象に追加
                     if 'author' in entry and entry['author']:
                         text_fields.append(str(entry['author']))
                     if 'maintainer' in entry and entry['maintainer']:
@@ -71,7 +76,6 @@ class DataFetchThread(QThread):
                         filtered_results.append(entry)
             conn.close()
         except Exception as e:
-            # エラー時は空リスト返す
             filtered_results = []
         result_count = len(filtered_results)
         page_count = max(1, (result_count + self.results_limit - 1) // self.results_limit)
@@ -285,6 +289,28 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
             self.util.msg_log_debug('before get_groups')
 
+            # カテゴリ（グループ）リストを取得して追加（デバッグ出力付き）
+            ok, result = self.cc.get_groups()
+            self.util.msg_log_debug(f'get_groups ok={ok}, result={result}')
+            if not ok:
+                self.util.dlg_warning(f'カテゴリ取得失敗: {result}')
+            elif not result:
+                self.util.dlg_warning('カテゴリリストが空です。CKANサーバやネットワーク設定を確認してください。')
+            else:
+                from PyQt5.QtCore import Qt
+                from PyQt5.QtWidgets import QListWidgetItem
+                for group in result:
+                    if isinstance(group, dict):
+                        title = group.get('title') or group.get('name', '')
+                        self.util.msg_log_debug(f'Add group: {title}')
+                        item = QListWidgetItem(title)
+                        item.setData(Qt.UserRole, group)
+                    else:
+                        self.util.msg_log_debug(f'Add group: {group}')
+                        item = QListWidgetItem(str(group))
+                        item.setData(Qt.UserRole, {'name': str(group)})
+                    item.setCheckState(Qt.Unchecked)
+                    self.IDC_listGroup.addItem(item)
             # データ形式リストは固定リストのみ
             self.update_format_list(None)
         finally:
@@ -344,8 +370,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         results_limit = getattr(self.settings, 'results_limit', 50)
+        # カテゴリ（グループ）フィルタを取得
+        group_names = self.__get_selected_groups()
         # QThreadでデータ取得
-        self.data_thread = DataFetchThread(db_path, format_text, format_lc, self.current_page, results_limit, self.search_txt)
+        self.data_thread = DataFetchThread(db_path, format_text, format_lc, self.current_page, results_limit, self.search_txt, group_names)
         self.data_thread.result_ready.connect(self._on_data_ready)
         self.data_thread.start()
 
@@ -377,7 +405,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             self.IDC_listResults.addItem(item)
 
     def list_group_item_changed(self, item):
-        self.searchtextchanged(self.IDC_lineSearch.text())
+        # カテゴリのチェック状態変更時に再検索を実行
+        self.__search_package()
 
     def resultitemchanged(self, new_item):
         self.IDC_textDetails.setText('')
