@@ -127,9 +127,9 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 class CKANBrowserDialog(QDialog, FORM_CLASS):
     def update_format_list(self, results):
         """
-        データ形式リストを一般的な形式+GISでよく使われる形式の固定リストにし、手入力もできるようにする
+        データ形式リストを一般的な形式+GISでよく使われる形式の固定リスト＋実データ形式一覧で構成し、手入力もできるようにする
         """
-        # 一般的なデータ形式 + GISでよく使われる形式
+        # 固定リスト
         format_list = [
             'すべて',
             'csv', 'tsv', 'txt', 'json', 'geojson', 'xml', 'html', 'pdf', 'zip', 'rar', '7z',
@@ -138,6 +138,18 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             'sqlite', 'rdf',
             'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg',
         ]
+        # 検索結果から実際のformat値を抽出
+        if results:
+            found_formats = set()
+            for entry in results:
+                for res in entry.get('resources', []):
+                    fmt = res.get('format', '').strip()
+                    if fmt:
+                        found_formats.add(fmt)
+            # 固定リストにないものを追加
+            for fmt in sorted(found_formats, key=lambda x: x.lower()):
+                if fmt.lower() not in [f.lower() for f in format_list]:
+                    format_list.append(fmt)
         # 重複除去しつつ大文字小文字区別せず整形
         seen = set()
         format_list_unique = []
@@ -205,6 +217,29 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         # --- 追加: SQLite再取得ボタンのシグナル接続 ---
         if hasattr(self, 'IDC_bRefreshSqlite'):
             self.IDC_bRefreshSqlite.clicked.connect(self.refresh_sqlite_clicked)
+    def _get_cache_db_path(self):
+        """
+        現在のCKANサーバーURLごとにキャッシュDBファイル名を分けて返す
+        """
+        import re
+        cache_dir = self.settings.cache_dir
+        if not cache_dir or not os.path.isdir(cache_dir):
+            if sys.platform == 'win32':
+                from pathlib import Path
+                downloads = str(Path.home() / 'Downloads')
+            elif sys.platform == 'darwin':
+                downloads = os.path.expanduser('~/Downloads')
+            else:
+                downloads = os.path.expanduser('~/Downloads')
+            cache_dir = os.path.join(downloads, 'CKAN-Browser')
+            if not os.path.isdir(cache_dir):
+                os.makedirs(cache_dir, exist_ok=True)
+        # サーバーURLからファイル名を生成（記号を_に）
+        url = getattr(self.settings, 'ckan_url', 'default')
+        url_id = re.sub(r'[^a-zA-Z0-9]', '_', url)
+        db_path = os.path.join(cache_dir, f'ckan_cache_{url_id}.db')
+        return db_path
+
     def refresh_sqlite_clicked(self):
         """
         全データセットを再取得しSQLiteキャッシュを再作成する
@@ -221,6 +256,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 return
             all_results = []
             page = 1
+            total_count = 0
+            results_limit = getattr(self.settings, 'results_limit', 50)
+            max_page = 1
+            progress = None
             while True:
                 ok, page_result = self.cc.package_search('', None, page)
                 if not ok or 'results' not in page_result:
@@ -231,28 +270,31 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 all_results.extend(results)
                 if page == 1:
                     total_count = page_result.get('count', 0)
-                    results_limit = getattr(self.settings, 'results_limit', 50)
                     max_page = (total_count + results_limit - 1) // results_limit
+                    # 進捗ダイアログ作成
+                    from PyQt5.QtWidgets import QProgressDialog
+                    progress = QProgressDialog(self.util.tr('CKAN全件取得中...'), self.util.tr('キャンセル'), 0, max_page, self)
+                    progress.setWindowTitle(self.util.tr('進捗'))
+                    progress.setWindowModality(Qt.WindowModal)
+                    progress.setMinimumDuration(0)
+                    progress.setValue(0)
+                if progress:
+                    progress.setValue(page)
+                    progress.setLabelText(self.util.tr('CKAN全件取得中... ({}/{})').format(page, max_page))
+                    QApplication.processEvents()
+                    if progress.wasCanceled():
+                        break
                 if page >= max_page:
                     break
                 page += 1
+            if progress:
+                progress.setValue(max_page)
+                progress.close()
             if all_results:
                 from qgis.core import QgsMessageLog, Qgis
                 try:
                     from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
-                    cache_dir = self.settings.cache_dir
-                    if not cache_dir or not os.path.isdir(cache_dir):
-                        if sys.platform == 'win32':
-                            from pathlib import Path
-                            downloads = str(Path.home() / 'Downloads')
-                        elif sys.platform == 'darwin':
-                            downloads = os.path.expanduser('~/Downloads')
-                        else:
-                            downloads = os.path.expanduser('~/Downloads')
-                        cache_dir = os.path.join(downloads, 'CKAN-Browser')
-                        if not os.path.isdir(cache_dir):
-                            os.makedirs(cache_dir, exist_ok=True)
-                    db_path = os.path.join(cache_dir, 'ckan_cache.db')
+                    db_path = self._get_cache_db_path()
                     QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
                     save_ckan_packages_to_sqlite(db_path, all_results)
                     QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has finished."), 'CKAN-Browser', Qgis.Info)
@@ -260,7 +302,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 except Exception as e:
                     QgsMessageLog.logMessage(self.util.tr(u"SQLite save error: {}".format(e)), 'CKAN-Browser', Qgis.Critical)
                     self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
+                # データ形式リストも更新
                 self.update_format_list(all_results)
+                # UI全体を新しいキャッシュでリロード
+                self.list_all_clicked()
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -311,8 +356,23 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         item.setData(Qt.UserRole, {'name': str(group)})
                     item.setCheckState(Qt.Unchecked)
                     self.IDC_listGroup.addItem(item)
-            # Data format list is fixed only
-            self.update_format_list(None)
+            # --- ここでキャッシュDBから全リソースのformat一覧を取得し反映 ---
+            import sqlite3, json
+            db_path = self._get_cache_db_path()
+            all_results = []
+            try:
+                conn = sqlite3.connect(db_path)
+                c = conn.cursor()
+                c.execute('SELECT raw_json FROM packages')
+                rows = c.fetchall()
+                for row in rows:
+                    entry = json.loads(row[0])
+                    all_results.append(entry)
+                conn.close()
+            except Exception as e:
+                self.util.msg_log_error(f"DB read error: {e}")
+                all_results = None
+            self.update_format_list(all_results)
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -366,7 +426,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 self.current_page = self.page_count
             self.util.msg_log_debug(u'page is not None, cp:{0} pg:{1}'.format(self.current_page, page))
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        db_path = os.path.join(self.settings.cache_dir or os.getcwd(), 'ckan_cache.db')
+        db_path = self._get_cache_db_path()
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         results_limit = getattr(self.settings, 'results_limit', 50)

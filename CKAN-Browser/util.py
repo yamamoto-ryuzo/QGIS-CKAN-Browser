@@ -460,14 +460,46 @@ class Util:
                 header = lines[0] if lines else ''
                 columns = [col.strip().strip('"\'') for col in header.strip().split(delimiter)] if header else []
                 # 緯度経度カラム名候補
-                lat_candidates = ['lat', 'latitude', 'y', '緯度', 'LAT', 'LATITUDE', 'Y']
-                lon_candidates = ['lon', 'lng', 'long', 'longitude', 'x', '経度', 'LON', 'LONG', 'LONGITUDE', 'X']
-                lat_col = next((c for c in columns if c in lat_candidates), None)
-                lon_col = next((c for c in columns if c in lon_candidates), None)
+                lat_candidates = ['lat', 'latitude', 'y', 'LAT', 'LATITUDE', 'Y']
+                lon_candidates = ['lon', 'lng', 'long', 'longitude', 'x', 'LON', 'LONG', 'LONGITUDE', 'X']
+                lat_col = None
+                lon_col = None
+                # まず日本語カラム名（部分一致）を優先
+                for c in columns:
+                    if ('緯度' in c) and lat_col is None:
+                        lat_col = c
+                    if ('経度' in c) and lon_col is None:
+                        lon_col = c
+                # 日本語カラム名が両方見つかった場合のみ数値判定
+                def is_float(s):
+                    try:
+                        float(s)
+                        return True
+                    except:
+                        return False
                 if lat_col and lon_col:
-                    self.msg_log_debug(f"緯度経度カラム自動検出: lat={lat_col}, lon={lon_col}")
+                    lat_idx = columns.index(lat_col)
+                    lon_idx = columns.index(lon_col)
+                    valid_count = 0
+                    for row in lines[1:6]:
+                        vals = row.strip().split(delimiter)
+                        if len(vals) > max(lat_idx, lon_idx):
+                            if is_float(vals[lat_idx]) and is_float(vals[lon_idx]):
+                                valid_count += 1
+                    if valid_count >= 2:
+                        self.msg_log_debug(f"緯度経度カラム自動検出: lat={lat_col}, lon={lon_col} (数値判定OK) [{valid_count}行]")
+                    else:
+                        self.msg_log_debug(f"緯度経度カラム候補はあるが数値でない: lat={lat_col}, lon={lon_col}")
+                        lat_col = None
+                        lon_col = None
                 else:
-                    self.msg_log_debug(f"緯度経度カラムが見つかりません: columns={columns}")
+                    # 日本語でなければ完全一致のみ
+                    lat_col = next((c for c in columns if c in lat_candidates), None)
+                    lon_col = next((c for c in columns if c in lon_candidates), None)
+                    if lat_col and lon_col:
+                        self.msg_log_debug(f"緯度経度カラム自動検出: lat={lat_col}, lon={lon_col} (完全一致)")
+                    else:
+                        self.msg_log_debug(f"緯度経度カラムが見つかりません: columns={columns}")
                 break
             except Exception as e:
                 self.msg_log_debug(f"CSV delimiter auto-detect failed with {enc}: {e}")
