@@ -144,7 +144,9 @@ class CKANBrowserDialogDataProviders(QDialog, FORM_CLASS):
                     self.servers.append(si)
 
                 for idx, server in enumerate(self.servers):
-                    i = QStandardItem(server.title)
+                    # サーバー名＋URLを表示
+                    display_text = f"{server.short_title} ({server.url})"
+                    i = QStandardItem(display_text)
                     i.setData(server)
                     if server.api_url is not None:
                         if server.is_custom:

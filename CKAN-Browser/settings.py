@@ -29,25 +29,38 @@ class Settings:
         self.version = self._determine_version()
 
     def load(self):
+        import json
         qgis_settings = QSettings()
         self.cache_dir = qgis_settings.value(self.KEY_CACHE_DIR, '')
         if self.cache_dir is None:
             self.cache_dir = ''
         self.ckan_url = qgis_settings.value(self.KEY_CKAN_API, 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/')
         self.selected_ckan_servers = qgis_settings.value(self.KEY_SELECTED_CKAN_SERVERS, '')
-        self.custom_servers = qgis_settings.value(self.KEY_CUSTOM_SERVERS, {})
+        # custom_serversはjson文字列として保存されている場合を考慮し、dict型でなければjson.loadsし、dictでなければ空dictにする
+        raw_custom_servers = qgis_settings.value(self.KEY_CUSTOM_SERVERS, '{}')
+        if isinstance(raw_custom_servers, dict):
+            self.custom_servers = raw_custom_servers
+        else:
+            try:
+                self.custom_servers = json.loads(raw_custom_servers)
+                if not isinstance(self.custom_servers, dict):
+                    self.custom_servers = {}
+            except Exception:
+                self.custom_servers = {}
         self.debug = qgis_settings.value(self.KEY_SHOW_DEBUG_INFO, False, bool)
         self.authcfg = qgis_settings.value(self.KEY_AUTHCFG, '')
         self.auth_propagate = qgis_settings.value(self.KEY_AUTH_PROPAGATE, False, bool)
 
     def save(self):
+        import json
         qgis_settings = QSettings()
         qgis_settings.setValue(self.KEY_CACHE_DIR, self.cache_dir)
         qgis_settings.setValue(self.KEY_CKAN_API, self.ckan_url)
         qgis_settings.setValue(self.KEY_AUTHCFG, self.authcfg)
         qgis_settings.setValue(self.KEY_AUTH_PROPAGATE, self.auth_propagate)
         qgis_settings.setValue(self.KEY_SELECTED_CKAN_SERVERS, self.selected_ckan_servers)
-        qgis_settings.setValue(self.KEY_CUSTOM_SERVERS, self.custom_servers)
+        # dict型はjson文字列にして保存
+        qgis_settings.setValue(self.KEY_CUSTOM_SERVERS, json.dumps(self.custom_servers))
         qgis_settings.setValue(self.KEY_SHOW_DEBUG_INFO, self.debug)
 
     def _determine_version(self):
