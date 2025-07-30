@@ -126,6 +126,7 @@ class Util:
         try:
             file_types = (
                 '*.[Ss][Hh][Pp]',
+                '*.[Gg][Pp][Kk][Gg]',  # GPKG (GeoPackage) を追加
                 '*.[Gg][Mm][Ll]',
                 '*.[Gg][Ee][Oo][Rr][Ss][Ss]',
                 '*.[Xx][Mm][Ll]',
