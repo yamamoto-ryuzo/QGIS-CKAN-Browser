@@ -79,7 +79,7 @@ class CkanConnector:
 
         return self.__get_data(
             result,
-            u'action/package_search?q={0}'.format(q)
+            u'action/package_search?q={0}&rows={1}'.format(q, self.settings.results_limit)
         )
 
     def show_group(self, group_name, page=None):
