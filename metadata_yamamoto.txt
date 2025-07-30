@@ -2,7 +2,7 @@
 name=CKAN-Browser
 qgisMinimumVersion=3.0
 about=Download and display Open Data from CKAN Metadata Servers
-version=V1.0.17
+version=V1.0.19
 # バージョン番号の意味
 # A: QGIS本体またはプラグインのバージョンアップに伴う本体の修正
 # B: UIの変更（プラグインの追加等含む）、本体の簡易な機能追加

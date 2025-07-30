@@ -61,14 +61,9 @@ class CkanConnector:
         if not ok:
             return ok, result
 
-        if groups is None:
-            group_filter = ''
-        else:
-            group_filter = '&fq=('
-            for i in range(len(groups)):
-                groups[i] = u'groups:{0}'.format(groups[i])
-            group_filter += '+OR+'.join(groups) + ')'
-        self.util.msg_log_debug(u'group_filter: {0}'.format(group_filter))
+        # グループフィルタは使用しない
+        group_filter = ''
+        # self.util.msg_log_debug(u'group_filter: {0}'.format(group_filter))
         if page is None:
             start_query = ''
         else:
@@ -80,17 +75,11 @@ class CkanConnector:
             # タイトル・説明・タグのOR全文検索
             q = u'({0}) OR description:{0} OR tags:{0}'.format(text)
         else:
-            q = ''
+            q = '*:*'
 
         return self.__get_data(
             result,
-            u'action/package_search?q={0}{1}&sort={2}&rows={3}{4}'.format(
-                q,
-                group_filter,
-                self.sort,
-                self.settings.results_limit,
-                start_query
-            )
+            u'action/package_search?q={0}'.format(q)
         )
 
     def show_group(self, group_name, page=None):

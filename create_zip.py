@@ -48,6 +48,7 @@ def move_to_trash(filepath):
 PLUGIN_DIR = 'CKAN-Browser'
 META_FILE = 'metadata_yamamoto.txt'
 ZIP_PREFIX = 'CKANBrowser_yamamoto_'
+ZIP_SUFFIX = ''
 
 # 必要最小限のファイル・ディレクトリ
 INCLUDE_FILES = [
