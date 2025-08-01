@@ -55,7 +55,7 @@ class CkanConnector:
 
         return self.__get_data(result, 'action/group_list?all_fields=true')
 
-    def package_search(self, text, groups=None, page=None):
+    def package_search(self, text, groups=None, page=None, rows=None, start=None):
         ok, result = self._validate_ckan_url(self.settings.ckan_url)
 
         if not ok:
@@ -64,10 +64,13 @@ class CkanConnector:
         # グループフィルタは使用しない
         group_filter = ''
         # self.util.msg_log_debug(u'group_filter: {0}'.format(group_filter))
-        if page is None:
-            start_query = ''
-        else:
+        # startパラメータ
+        if start is not None:
+            start_query = f'&start={start}'
+        elif page is not None:
             start_query = self.__get_start(page)
+        else:
+            start_query = ''
         self.util.msg_log_debug(u'start: {0}'.format(start_query))
 
         # 全文検索クエリを組み立て
@@ -77,9 +80,11 @@ class CkanConnector:
         else:
             q = '*:*'
 
+        # rows指定（なければsettings.results_limit）
+        rows_val = rows if rows is not None else self.settings.results_limit
         return self.__get_data(
             result,
-            u'action/package_search?q={0}&rows={1}'.format(q, self.settings.results_limit)
+            u'action/package_search?q={0}&rows={1}{2}'.format(q, rows_val, start_query)
         )
 
     def show_group(self, group_name, page=None):

@@ -242,7 +242,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
     def refresh_sqlite_clicked(self):
         """
-        全データセットを再取得しSQLiteキャッシュを再作成する
+        全データセットを再取得しSQLiteキャッシュを再作成する（CKAN APIのstartパラメータでページング取得）
         """
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
@@ -254,34 +254,33 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             if not result:
                 self.list_all_clicked()
                 return
+            # ページングで全件取得
+            from PyQt5.QtWidgets import QProgressDialog
+            rows_per_page = 1000
+            start = 0
             all_results = []
+            total_count = None
             page = 1
-            total_count = 0
-            results_limit = getattr(self.settings, 'results_limit', 50)
-            max_page = 1
             progress = None
             while True:
-                ok, page_result = self.cc.package_search('', None, page)
+                ok, page_result = self.cc.package_search('', None, None, rows=rows_per_page, start=start)
                 if not ok or 'results' not in page_result:
                     break
                 results = page_result['results']
-                if not results:
-                    break
-                all_results.extend(results)
-                if page == 1:
+                if total_count is None:
                     total_count = page_result.get('count', 0)
-                    max_page = (total_count + results_limit - 1) // results_limit
-                    # 進捗ダイアログ作成
-                    from PyQt5.QtWidgets import QProgressDialog
+                    max_page = (total_count + rows_per_page - 1) // rows_per_page
                     progress = QProgressDialog(self.util.tr('CKAN全件取得中...'), self.util.tr('キャンセル'), 0, max_page, self)
                     progress.setWindowTitle(self.util.tr('進捗'))
                     progress.setWindowModality(Qt.WindowModal)
                     progress.setMinimumDuration(0)
                     progress.setValue(0)
+                if not results:
+                    break
+                all_results.extend(results)
                 if progress:
                     progress.setValue(page)
                     progress.setLabelText(self.util.tr('CKAN全件取得中... ({}/{})').format(page, max_page))
-                    # 進捗ダイアログのカウントが上がるたびに取得データセット一覧をログ表示
                     titles = [entry.get('title', 'no title') for entry in results]
                     try:
                         from qgis.core import QgsMessageLog, Qgis
@@ -291,9 +290,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     QApplication.processEvents()
                     if progress.wasCanceled():
                         break
-                if page >= max_page:
+                if len(all_results) >= total_count:
+                    break
+                if progress and progress.wasCanceled():
                     break
                 page += 1
+                start += rows_per_page
             if progress:
                 progress.setValue(max_page)
                 progress.close()
@@ -309,9 +311,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 except Exception as e:
                     QgsMessageLog.logMessage(self.util.tr(u"SQLite save error: {}".format(e)), 'CKAN-Browser', Qgis.Critical)
                     self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
-                # データ形式リストも更新
                 self.update_format_list(all_results)
-                # UI全体を新しいキャッシュでリロード
                 self.list_all_clicked()
         finally:
             QApplication.restoreOverrideCursor()
