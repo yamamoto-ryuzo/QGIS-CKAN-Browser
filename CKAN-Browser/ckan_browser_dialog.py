@@ -529,8 +529,6 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         # self.util.dlg_warning(u'pkg:{0} res:{1} {2}'.format(self.cur_package['id'], res[0]['id'], res[0]['url']))
         for resource in res:
             if resource['name'] is None:
-                # self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_no_resource_name').format(resource['id']))
-                # continue
                 resource['name'] = "Unnamed resource"
             self.util.msg_log_debug(u'Bearbeite: {0}'.format(resource['name']))
             dest_dir = os.path.join(
@@ -544,26 +542,33 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
             dest_file = os.path.join(dest_dir, os.path.split(resource['url'])[1])
 
-            # wmts
+
             format_lower = resource['format'].lower()
+            url_val = resource.get('url', '').strip()
+            # XYZ形式の場合はURLが空でなく、http/httpsで始まり、{z}/{x}/{y}を含む場合のみ直接追加
+            if format_lower == 'xyz' and url_val and (url_val.startswith('http://') or url_val.startswith('https://')) and ('{z}' in url_val and '{x}' in url_val and '{y}' in url_val):
+                try:
+                    from qgis.core import QgsRasterLayer, QgsProject
+                    xyz_src = f'type=xyz&url={url_val}'
+                    xyz_layer = QgsRasterLayer(xyz_src, resource['name'], 'wms')
+                    if xyz_layer.isValid():
+                        QgsProject.instance().addMapLayer(xyz_layer)
+                        self.util.msg_log_debug(f'XYZ layer added: {url_val}')
+                    else:
+                        self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], 'XYZ layer invalid'))
+                except Exception as e:
+                    self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], str(e)))
+                continue
+
+            # 通常のダウンロード・追加処理
             if format_lower == 'wms':
                 format_lower = 'wmts'
             if format_lower == 'wmts':
-                resource_url = resource['url']
+                resource_url = url_val
                 resource_url_lower = resource_url.lower()
                 if not resource_url_lower.endswith('.qlr'):
                     dest_file += '.wmts'
-                #pyperclip.copy(resource_url)
-                """
-                self.util.dlg_information(u'{0}\n{1}\n\n{2}\n{3}\n{4}'.format(
-                    u'WMTS kann nicht automatisch geladen werden.',
-                    u'Der Link wurde in die Zwischenablage kopiert.',
-                    u'Layer -> Layer hinzufügen -> ',
-                    u'WMS/WMTS-Layer hinzufügen ->',
-                    u'Neu -> im Textfeld "URL" Strg+V drücken'
-                ))
                 continue
-                """
             if format_lower == 'wfs':
                 dest_file += '.wfs'
             if format_lower == 'georss':
@@ -577,58 +582,48 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     do_download = True
                 else:
                     do_download = False
+            download_failed = False
             if do_download is True:
-                # set wait cursor if request take it time, low latency, server not reachable, ...
                 QApplication.setOverrideCursor(Qt.WaitCursor)
                 QtWidgets.qApp.processEvents()
-                file_size_ok, file_size, hdr_exception = self.cc.get_file_size(resource['url'])
+                file_size_ok, file_size, hdr_exception = self.cc.get_file_size(url_val)
                 QApplication.restoreOverrideCursor()
-                # Silently ignore the error
                 if not file_size_ok:
                     file_size = 0
                 if file_size > 50 and QMessageBox.No == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_big_file').format(file_size)):
-                    continue  # stop process if user does not want to download the file
+                    continue
                 if hdr_exception:
-                    # self.util.dlg_warning(u'{}'.format(hdr_exception))
-                    # continue
-                    # just log exception and continue, some servers dont support HEAD request
                     self.util.msg_log_error(u'error getting size of response, HEAD request failed: {}'.format(hdr_exception))
 
                 self.util.msg_log_debug('setting wait cursor')
                 QApplication.setOverrideCursor(Qt.WaitCursor)
-                # pump GUI messages, otherwise wait cursor might not get displayed
-                # as we are running the downloads on the main thread and if the request
-                # gets stuck immediately (eg low latency or connection refused only after some time)
-                # wait cursor might not appear
                 QtWidgets.qApp.processEvents()
                 self.util.msg_log_debug('wait cursor set')
 
                 ok, err_msg, new_file_name = self.cc.download_resource(
-                    resource['url']
+                    url_val
                     , resource['format']
                     , dest_file
                     , do_delete
                 )
                 QApplication.restoreOverrideCursor()
                 if ok is False:
-                    #self.util.dlg_warning(self.util.tr(u'py_dlg_base_download_error').format(err_msg))
                     self.util.dlg_warning(err_msg)
-                    continue
-                # set new file name obtained from service 'content-disposition'
-                if new_file_name:
-                    dest_file = new_file_name
-                if os.path.basename(dest_file).lower().endswith('.zip'):
-                    ok, err_msg = self.util.extract_zip(dest_file, dest_dir)
-                    QApplication.restoreOverrideCursor()
-                    if ok is False:
-                        self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_not_extracted').format(err_msg))
-                        continue
+                    download_failed = True
+                else:
+                    if new_file_name:
+                        dest_file = new_file_name
+                    if os.path.basename(dest_file).lower().endswith('.zip'):
+                        ok, err_msg = self.util.extract_zip(dest_file, dest_dir)
+                        QApplication.restoreOverrideCursor()
+                        if ok is False:
+                            self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_not_extracted').format(err_msg))
+                            continue
 
-            #QApplication.setOverrideCursor(Qt.WaitCursor)
+            # XYZ形式でURLが空や不正な場合は何もしない（警告も不要）
+
             ok, err_msg = self.util.add_lyrs_from_dir(dest_dir, resource['name'], resource['url'])
-            #QApplication.restoreOverrideCursor()
             if ok is False:
-#                 self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], err_msg))
                 if isinstance(err_msg, dict):
                     if QMessageBox.Yes == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_open_manager').format(resource['url'])):
                         self.util.open_in_manager(err_msg["dir_path"])
