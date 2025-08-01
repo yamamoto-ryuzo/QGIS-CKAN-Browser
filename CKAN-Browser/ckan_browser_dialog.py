@@ -480,6 +480,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.IDC_listRessources.clear()
         self.IDC_plainTextLink.clear()
         if new_item is None:
+            # 選択解除時は全リソースのチェックを外す
+            for i in range(self.IDC_listRessources.count()):
+                item = self.IDC_listRessources.item(i)
+                item.setCheckState(Qt.Unchecked)
             return
         package = new_item.data(Qt.UserRole)
         self.cur_package = package
@@ -518,7 +522,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             disp = u'{}: {}'.format(res.get('format', 'no format'), res.get('url', '(no url)'))
             item = QListWidgetItem(disp)
             item.setData(Qt.UserRole, res)
-            item.setCheckState(Qt.Unchecked)
+            item.setCheckState(Qt.Checked)  # 選択時は全てチェックON
             self.IDC_listRessources.addItem(item)
 
     def resource_item_changed(self, new_item):
