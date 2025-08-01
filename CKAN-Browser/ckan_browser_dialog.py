@@ -281,6 +281,13 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 if progress:
                     progress.setValue(page)
                     progress.setLabelText(self.util.tr('CKAN全件取得中... ({}/{})').format(page, max_page))
+                    # 進捗ダイアログのカウントが上がるたびに取得データセット一覧をログ表示
+                    titles = [entry.get('title', 'no title') for entry in results]
+                    try:
+                        from qgis.core import QgsMessageLog, Qgis
+                        QgsMessageLog.logMessage(f"取得データセット（ページ{page}）: {titles}", 'CKAN-Browser', Qgis.Info)
+                    except Exception:
+                        pass
                     QApplication.processEvents()
                     if progress.wasCanceled():
                         break
