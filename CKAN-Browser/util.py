@@ -433,8 +433,9 @@ class Util:
         delimiter_names = {',': 'カンマ', ';': 'セミコロン', '\t': 'タブ', ':': 'コロン', ' ': 'スペース'}
         delimiter_counts = {d: 0 for d in delimiters}
         lines = []
-        encodings = ['utf-8', 'cp932']
+        encodings = ['utf-8', 'cp932', 'windows-1252', 'shift_jis', 'iso-8859-1']
         delimiter = None
+        detected_encoding = None
         for enc in encodings:
             try:
                 with open(full_path, encoding=enc) as f:
@@ -457,6 +458,7 @@ class Util:
                     self.msg_log_debug(f"CSV delimiter auto-detect ambiguous: {delimiter_counts} [{enc}]")
                     QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字が自動判定できませんでした: {full_path}\nカンマ・セミコロン・タブ・コロン・スペースのいずれかで明確に区切られている必要があります。")
                     return
+                detected_encoding = enc
                 # 先頭行からカラム名を取得
                 header = lines[0] if lines else ''
                 columns = [col.strip().strip('"\'') for col in header.strip().split(delimiter)] if header else []
@@ -507,10 +509,10 @@ class Util:
                 lines = []
                 delimiter_counts = {d: 0 for d in delimiters}
         else:
-            QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字自動判定に失敗しました: {full_path}\nUTF-8/CP932のいずれでも開けませんでした。")
+            QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字自動判定に失敗しました: {full_path}\nUTF-8/CP932/ANSI/Shift_JIS/ISO-8859-1のいずれでも開けませんでした。")
             return
-        # QgsVectorLayerのURIにdelimiterパラメータを付与
-        uri = f"file:///{full_path}?delimiter={delimiter}"
+        # QgsVectorLayerのURIにdelimiterとencodingパラメータを付与
+        uri = f"file:///{full_path}?delimiter={delimiter}&encoding={detected_encoding}"
         # 緯度経度カラムがあればポイントレイヤとして追加
         if lat_col and lon_col:
             uri += f"&xField={lon_col}&yField={lat_col}&crs=EPSG:4326"
@@ -519,7 +521,7 @@ class Util:
                 QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの読み込みに失敗しました: {full_path}")
                 return
             QgsProject.instance().addMapLayer(lyr)
-            self.msg_log_debug(f"CSVをポイントレイヤとして追加しました: {full_path} (delimiter={delimiter}, xField={lon_col}, yField={lat_col})")
+            self.msg_log_debug(f"CSVをポイントレイヤとして追加しました: {full_path} (delimiter={delimiter}, encoding={detected_encoding}, xField={lon_col}, yField={lat_col})")
         else:
             lyr = QgsVectorLayer(uri, name, "delimitedtext")
             if not lyr.isValid():
@@ -527,7 +529,7 @@ class Util:
                 return
             if lyr.wkbType() == 100:  # QgsWkbTypes.NoGeometry == 100
                 QgsProject.instance().addMapLayer(lyr)
-                self.msg_log_debug(f"CSVを属性テーブルとして追加しました: {full_path} (delimiter={delimiter})")
+                self.msg_log_debug(f"CSVを属性テーブルとして追加しました: {full_path} (delimiter={delimiter}, encoding={detected_encoding})")
             else:
                 from qgis.utils import iface
                 if iface is not None:
