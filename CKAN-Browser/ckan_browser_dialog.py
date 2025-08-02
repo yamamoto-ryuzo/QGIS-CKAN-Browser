@@ -132,6 +132,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             self.IDC_textDetails.clear()
             self.IDC_listRessources.clear()
             self.IDC_plainTextLink.clear()
+        if hasattr(self, 'IDC_lblSelectedCount'):
+            self.IDC_lblSelectedCount.setText("選択中: 0件")
     def update_format_list(self, results):
         """
         データ形式リストを一般的な形式+GISでよく使われる形式の固定リスト＋実データ形式一覧で構成し、手入力もできるようにする
@@ -227,6 +229,41 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         # データセット一覧で複数選択を可能に
         if hasattr(self, 'IDC_listResults'):
             self.IDC_listResults.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+            self.IDC_listResults.selectionModel().selectionChanged.connect(self.update_selected_count)
+        if hasattr(self, 'IDC_listRessources'):
+            self.IDC_listRessources.itemChanged.connect(self.update_resource_checked_count)
+
+    def update_resource_checked_count(self, item=None):
+        checked_count = 0
+        for i in range(self.IDC_listRessources.count()):
+            if self.IDC_listRessources.item(i).checkState() == Qt.Checked:
+                checked_count += 1
+        selected_items = self.IDC_listResults.selectedItems() if hasattr(self, 'IDC_listResults') else []
+        if hasattr(self, 'IDC_lblSelectedCount'):
+            self.IDC_lblSelectedCount.setText(f"選択中　データセット: {len(selected_items)}件 / データ: {checked_count}件")
+
+    def update_selected_count(self):
+        selected_items = self.IDC_listResults.selectedItems()
+        format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
+        format_lc = format_text.lower()
+        def is_format_match(res):
+            if format_text == 'すべて':
+                return True
+            if 'format' in res and res['format']:
+                fmt = res['format'].strip().lower()
+                if format_lc in fmt or fmt in format_lc:
+                    return True
+            return False
+        all_resources = []
+        for item in selected_items:
+            package = item.data(Qt.UserRole)
+            if package is None:
+                continue
+            resources = package.get('resources', [])
+            filtered_resources = [res for res in resources if is_format_match(res)]
+            all_resources.extend(filtered_resources)
+        if hasattr(self, 'IDC_lblSelectedCount'):
+            self.IDC_lblSelectedCount.setText(f"選択中　データセット: {len(selected_items)}件 / データ: {len(all_resources)}件")
     def _get_cache_db_path(self):
         """
         現在のCKANサーバーURLごとにキャッシュDBファイル名を分けて返す
@@ -536,6 +573,9 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             item.setData(Qt.UserRole, res)
             item.setCheckState(Qt.Checked)
             self.IDC_listRessources.addItem(item)
+        # 選択数（データセット数・リソース数）を表示
+        if hasattr(self, 'IDC_lblSelectedCount'):
+            self.IDC_lblSelectedCount.setText(f"選択中　データセット: {len(selected_items)}件 / データ: {len(all_resources)}件")
 
     def resource_item_changed(self, new_item):
         if new_item is None:
@@ -576,6 +616,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         if not all_resources:
             self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_no_resource'))
             return
+            if hasattr(self, 'IDC_lblSelectedCount'):
+                self.IDC_lblSelectedCount.setText("選択中: 0件")
         for resource in all_resources:
             # パッケージIDからpackage情報取得
             package_id = resource.get('_package_id')
