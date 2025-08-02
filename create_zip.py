@@ -91,10 +91,11 @@ def main():
             else:
                 f.write(line)
 
-    # 旧ZIP削除（ごみ箱へ移動、pip不要）
-    for fname in os.listdir('.'):
-        if fname.startswith(ZIP_PREFIX) and fname.endswith('.zip'):
-            move_to_trash(fname)
+    # 旧ZIP削除（ひとつ前のバージョンのみ削除、他は残す）
+    prev_verstr = version_to_str(ver)
+    prev_zipname = f'{ZIP_PREFIX}{ver[0]}.{ver[1]}.{ver[2]}.zip'
+    if os.path.exists(prev_zipname):
+        move_to_trash(prev_zipname)
 
     # 一時作業ディレクトリ作成
     tmp_dir = f'{PLUGIN_DIR}_tmp_pack'

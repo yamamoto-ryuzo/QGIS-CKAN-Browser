@@ -217,6 +217,9 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         # --- 追加: SQLite再取得ボタンのシグナル接続 ---
         if hasattr(self, 'IDC_bRefreshSqlite'):
             self.IDC_bRefreshSqlite.clicked.connect(self.refresh_sqlite_clicked)
+        # データセット一覧で複数選択を可能に
+        if hasattr(self, 'IDC_listResults'):
+            self.IDC_listResults.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
     def _get_cache_db_path(self):
         """
         現在のCKANサーバーURLごとにキャッシュDBファイル名を分けて返す
@@ -476,54 +479,63 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.__search_package()
 
     def resultitemchanged(self, new_item):
+        # 複数データセット選択時、全リソースを自動チェック＆一括ダウンロード対応
         self.IDC_textDetails.setText('')
         self.IDC_listRessources.clear()
         self.IDC_plainTextLink.clear()
-        if new_item is None:
+        selected_items = self.IDC_listResults.selectedItems()
+        if not selected_items:
             # 選択解除時は全リソースのチェックを外す
             for i in range(self.IDC_listRessources.count()):
                 item = self.IDC_listRessources.item(i)
                 item.setCheckState(Qt.Unchecked)
             return
-        package = new_item.data(Qt.UserRole)
-        self.cur_package = package
-        if package is None:
-            return
-        org = package.get('organization', {})
-        org_name = org.get('title') or org.get('name') or 'no organization'
-        org_desc = org.get('description', '') if isinstance(org, dict) else ''
-        self.IDC_textDetails.setText(
-            u'{0}\n\nOrganization: {1}\n{2}\n\nAuthor: {3} <{4}>\nMaintainer: {5} <{6}>\n\nLicense: {7}'.format(
-                package.get('notes', 'no notes'),
-                org_name,
-                org_desc,
-                package.get('author', 'no author'),
-                package.get('author_email', 'no author_email'),
-                package.get('maintainer', 'no maintainer'),
-                package.get('maintainer_email', 'no maintainer_email'),
-                package.get('license_id', 'no license_id')
-            )
-        )
-        # データ形式フィルタ
+        # 複数選択対応: 全選択データセットのリソースを一括表示＆チェック
+        all_resources = []
+        details_texts = []
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         def is_format_match(res):
             if format_text == 'すべて':
                 return True
-            # formatフィールドのみ判定（部分一致・空白除去・相互包含）
             if 'format' in res and res['format']:
                 fmt = res['format'].strip().lower()
                 if format_lc in fmt or fmt in format_lc:
                     return True
             return False
-        resources = package.get('resources', [])
-        filtered_resources = [res for res in resources if is_format_match(res)]
-        for res in filtered_resources:
+        # 先頭のデータセットをcur_packageに
+        self.cur_package = selected_items[0].data(Qt.UserRole)
+        for item in selected_items:
+            package = item.data(Qt.UserRole)
+            if package is None:
+                continue
+            org = package.get('organization', {})
+            org_name = org.get('title') or org.get('name') or 'no organization'
+            org_desc = org.get('description', '') if isinstance(org, dict) else ''
+            details_texts.append(
+                u'{0}\n\nOrganization: {1}\n{2}\n\nAuthor: {3} <{4}>\nMaintainer: {5} <{6}>\n\nLicense: {7}'.format(
+                    package.get('notes', 'no notes'),
+                    org_name,
+                    org_desc,
+                    package.get('author', 'no author'),
+                    package.get('author_email', 'no author_email'),
+                    package.get('maintainer', 'no maintainer'),
+                    package.get('maintainer_email', 'no maintainer_email'),
+                    package.get('license_id', 'no license_id')
+                )
+            )
+            resources = package.get('resources', [])
+            filtered_resources = [res for res in resources if is_format_match(res)]
+            for res in filtered_resources:
+                all_resources.append(res)
+        for res in all_resources:
             disp = u'{}: {}'.format(res.get('format', 'no format'), res.get('url', '(no url)'))
             item = QListWidgetItem(disp)
             item.setData(Qt.UserRole, res)
-            item.setCheckState(Qt.Checked)  # 選択時は全てチェックON
+            item.setCheckState(Qt.Checked)
             self.IDC_listRessources.addItem(item)
+        # 詳細は先頭データセットのみ表示（複数の場合は連結も可）
+        self.IDC_textDetails.setText('\n\n---\n\n'.join(details_texts))
 
     def resource_item_changed(self, new_item):
         if new_item is None:
@@ -533,27 +545,55 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.__fill_link_box(url)
 
     def load_resource_clicked(self):
-        res = self.__get_selected_resources()
-        if res is None:
+        # 複数データセットの全リソースを一括ダウンロード
+        selected_items = self.IDC_listResults.selectedItems()
+        if not selected_items:
             self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_no_resource'))
             return
-        # self.util.dlg_warning(u'pkg:{0} res:{1} {2}'.format(self.cur_package['id'], res[0]['id'], res[0]['url']))
-        for resource in res:
+        # 全リソース取得
+        all_resources = []
+        package_map = {}
+        format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
+        format_lc = format_text.lower()
+        def is_format_match(res):
+            if format_text == 'すべて':
+                return True
+            if 'format' in res and res['format']:
+                fmt = res['format'].strip().lower()
+                if format_lc in fmt or fmt in format_lc:
+                    return True
+            return False
+        for item in selected_items:
+            package = item.data(Qt.UserRole)
+            if package is None:
+                continue
+            package_map[package['id']] = package
+            resources = package.get('resources', [])
+            filtered_resources = [res for res in resources if is_format_match(res)]
+            for res in filtered_resources:
+                res['_package_id'] = package['id']  # パッケージIDをリソースに付与
+                all_resources.append(res)
+        if not all_resources:
+            self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_no_resource'))
+            return
+        for resource in all_resources:
+            # パッケージIDからpackage情報取得
+            package_id = resource.get('_package_id')
+            package = package_map.get(package_id)
+            if package is None:
+                continue
             if resource['name'] is None:
                 resource['name'] = "Unnamed resource"
             self.util.msg_log_debug(u'Bearbeite: {0}'.format(resource['name']))
             dest_dir = os.path.join(
                 self.settings.cache_dir,
-                self.cur_package['id'],
+                package['id'],
                 resource['id']
             )
             if self.util.create_dir(dest_dir) is False:
                 self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_cache_dir_not_created').format(dest_dir))
                 return
-
             dest_file = os.path.join(dest_dir, os.path.split(resource['url'])[1])
-
-
             format_lower = resource['format'].lower()
             url_val = resource.get('url', '').strip()
             # XYZ形式の場合はURLが空でなく、http/httpsで始まり、{z}/{x}/{y}を含む場合のみ直接追加
@@ -570,7 +610,6 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 except Exception as e:
                     self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], str(e)))
                 continue
-
             # 通常のダウンロード・追加処理
             if format_lower == 'wms':
                 format_lower = 'wmts'
@@ -584,7 +623,6 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 dest_file += '.wfs'
             if format_lower == 'georss':
                 dest_file += '.georss'
-
             do_download = True
             do_delete = False
             if os.path.isfile(dest_file):
@@ -605,12 +643,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     continue
                 if hdr_exception:
                     self.util.msg_log_error(u'error getting size of response, HEAD request failed: {}'.format(hdr_exception))
-
                 self.util.msg_log_debug('setting wait cursor')
                 QApplication.setOverrideCursor(Qt.WaitCursor)
                 QtWidgets.qApp.processEvents()
                 self.util.msg_log_debug('wait cursor set')
-
                 ok, err_msg, new_file_name = self.cc.download_resource(
                     url_val
                     , resource['format']
@@ -630,9 +666,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         if ok is False:
                             self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_not_extracted').format(err_msg))
                             continue
-
             # XYZ形式でURLが空や不正な場合は何もしない（警告も不要）
-
             ok, err_msg = self.util.add_lyrs_from_dir(dest_dir, resource['name'], resource['url'])
             if ok is False:
                 if isinstance(err_msg, dict):
