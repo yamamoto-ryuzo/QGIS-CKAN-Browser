@@ -478,21 +478,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         # カテゴリのチェック状態変更時に再検索を実行
         self.__search_package()
 
-    def resultitemchanged(self, new_item):
-        # 複数データセット選択時、全リソースを自動チェック＆一括ダウンロード対応
+    def resultitemchanged(self, current, previous):
+        # 選択データセット変更時、詳細はcurrentのみ、リソースは全選択分表示
         self.IDC_textDetails.setText('')
         self.IDC_listRessources.clear()
         self.IDC_plainTextLink.clear()
         selected_items = self.IDC_listResults.selectedItems()
-        if not selected_items:
-            # 選択解除時は全リソースのチェックを外す
-            for i in range(self.IDC_listRessources.count()):
-                item = self.IDC_listRessources.item(i)
-                item.setCheckState(Qt.Unchecked)
-            return
-        # 複数選択対応: 全選択データセットのリソースを一括表示＆チェック
-        all_resources = []
-        details_texts = []
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         def is_format_match(res):
@@ -503,39 +494,41 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 if format_lc in fmt or fmt in format_lc:
                     return True
             return False
-        # 先頭のデータセットをcur_packageに
-        self.cur_package = selected_items[0].data(Qt.UserRole)
+        # 詳細情報はcurrentのみ
+        if current is not None:
+            package = current.data(Qt.UserRole)
+            if package is not None:
+                org = package.get('organization', {})
+                org_name = org.get('title') or org.get('name') or 'no organization'
+                org_desc = org.get('description', '') if isinstance(org, dict) else ''
+                details_text = (
+                    u'{0}\n\nOrganization: {1}\n{2}\n\nAuthor: {3} <{4}>\nMaintainer: {5} <{6}>\n\nLicense: {7}'.format(
+                        package.get('notes', 'no notes'),
+                        org_name,
+                        org_desc,
+                        package.get('author', 'no author'),
+                        package.get('author_email', 'no author_email'),
+                        package.get('maintainer', 'no maintainer'),
+                        package.get('maintainer_email', 'no maintainer_email'),
+                        package.get('license_id', 'no license_id')
+                    )
+                )
+                self.IDC_textDetails.setText(details_text)
+        # リソース一覧は全選択分
+        all_resources = []
         for item in selected_items:
             package = item.data(Qt.UserRole)
             if package is None:
                 continue
-            org = package.get('organization', {})
-            org_name = org.get('title') or org.get('name') or 'no organization'
-            org_desc = org.get('description', '') if isinstance(org, dict) else ''
-            details_texts.append(
-                u'{0}\n\nOrganization: {1}\n{2}\n\nAuthor: {3} <{4}>\nMaintainer: {5} <{6}>\n\nLicense: {7}'.format(
-                    package.get('notes', 'no notes'),
-                    org_name,
-                    org_desc,
-                    package.get('author', 'no author'),
-                    package.get('author_email', 'no author_email'),
-                    package.get('maintainer', 'no maintainer'),
-                    package.get('maintainer_email', 'no maintainer_email'),
-                    package.get('license_id', 'no license_id')
-                )
-            )
             resources = package.get('resources', [])
             filtered_resources = [res for res in resources if is_format_match(res)]
-            for res in filtered_resources:
-                all_resources.append(res)
+            all_resources.extend(filtered_resources)
         for res in all_resources:
             disp = u'{}: {}'.format(res.get('format', 'no format'), res.get('url', '(no url)'))
             item = QListWidgetItem(disp)
             item.setData(Qt.UserRole, res)
             item.setCheckState(Qt.Checked)
             self.IDC_listRessources.addItem(item)
-        # 詳細は先頭データセットのみ表示（複数の場合は連結も可）
-        self.IDC_textDetails.setText('\n\n---\n\n'.join(details_texts))
 
     def resource_item_changed(self, new_item):
         if new_item is None:
