@@ -281,11 +281,11 @@
        </item>
        <item>
         <widget class="QPushButton" name="IDC_bRefreshSqlite">
-         <property name="text">
-          <string>SQLite再取得</string>
-         </property>
          <property name="toolTip">
           <string>全データセットを再取得しSQLiteキャッシュを再作成します</string>
+         </property>
+         <property name="text">
+          <string>SQLite再取得</string>
          </property>
         </widget>
        </item>
@@ -364,6 +364,16 @@
           </size>
          </property>
         </widget>
+       <item>
+        <widget class="QPushButton" name="IDC_bClearSelection">
+         <property name="text">
+          <string>選択クリア</string>
+         </property>
+         <property name="toolTip">
+          <string>検索結果の選択をクリアします</string>
+         </property>
+        </widget>
+       </item>
        </item>
        <item>
         <widget class="QLabel" name="IDC_lblPage">
@@ -686,6 +696,22 @@
     </hint>
    </hints>
   </connection>
+    <connection>
+     <sender>IDC_bClearSelection</sender>
+     <signal>clicked()</signal>
+     <receiver>CKANBrowserDialogBase</receiver>
+     <slot>clear_selection()</slot>
+     <hints>
+      <hint type="sourcelabel">
+       <x>358</x>
+       <y>180</y>
+      </hint>
+      <hint type="destinationlabel">
+       <x>468</x>
+       <y>59</y>
+      </hint>
+     </hints>
+    </connection>
   <connection>
    <sender>IDC_bLoadResource</sender>
    <signal>clicked()</signal>
@@ -962,5 +988,6 @@
   <slot>resource_item_changed(QListWidgetItem*)</slot>
   <slot>help_ttip_resource()</slot>
   <slot>select_data_provider_clicked()</slot>
+  <slot>clear_selection()</slot>
  </slots>
 </ui>

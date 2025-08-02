@@ -40,7 +40,7 @@
      <property name="flat">
       <bool>false</bool>
      </property>
-     <property name="collapsed">
+     <property name="collapsed" stdset="0">
       <bool>false</bool>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">

@@ -93,26 +93,24 @@ class Util:
         try:
             # zf.extractall(dest_dir) fails for umlauts
             # https://github.com/joeferraro/MavensMate/pull/27/files
-            f = zipfile.ZipFile(archive, 'r')
-            self.msg_log_debug(u'dest_dir: {0}'.format(dest_dir))
+            with zipfile.ZipFile(archive, 'r') as f:
+                self.msg_log_debug(u'dest_dir: {0}'.format(dest_dir))
 
-            for file_info in f.infolist():
-                #file_name = os.path.join(dest_dir, file_info.filename.decode('utf8'))
-                #decode('utf8') fails on Windows with umlauts in filenames
-                file_name = os.path.join(dest_dir, file_info.filename)
-                # different types of ZIPs
-                # some have a dedicated entry for folders
-                if file_name[-1] == u'/':
-                    if not os.path.exists(file_name):
-                        os.makedirs(file_name)
-                    continue
-                # some don't hava dedicated entry for folder
-                # extract folder info from file name
-                extract_dir = os.path.dirname(file_name)
-                if not os.path.exists(extract_dir):
-                    os.makedirs((extract_dir))
-                out_file = open(file_name, 'wb')
-                shutil.copyfileobj(f.open(file_info.filename), out_file)
+                for file_info in f.infolist():
+                    file_name = os.path.join(dest_dir, file_info.filename)
+                    # different types of ZIPs
+                    # some have a dedicated entry for folders
+                    if file_name[-1] == u'/':
+                        if not os.path.exists(file_name):
+                            os.makedirs(file_name)
+                        continue
+                    # some don't hava dedicated entry for folder
+                    # extract folder info from file name
+                    extract_dir = os.path.dirname(file_name)
+                    if not os.path.exists(extract_dir):
+                        os.makedirs((extract_dir))
+                    with f.open(file_info.filename) as src, open(file_name, 'wb') as out_file:
+                        shutil.copyfileobj(src, out_file)
             return True, None
         except UnicodeDecodeError as ude:
             return False, u'UnicodeDecodeError: {0}'.format(ude)

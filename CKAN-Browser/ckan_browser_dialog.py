@@ -125,6 +125,13 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class CKANBrowserDialog(QDialog, FORM_CLASS):
+    def clear_selection(self):
+        """検索結果リストの選択をクリアする"""
+        if hasattr(self, 'IDC_listResults'):
+            self.IDC_listResults.clearSelection()
+            self.IDC_textDetails.clear()
+            self.IDC_listRessources.clear()
+            self.IDC_plainTextLink.clear()
     def update_format_list(self, results):
         """
         データ形式リストを一般的な形式+GISでよく使われる形式の固定リスト＋実データ形式一覧で構成し、手入力もできるようにする
