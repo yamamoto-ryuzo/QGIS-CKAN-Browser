@@ -293,15 +293,16 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         """
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
-            ok, result = self.cc.get_groups()
+            # 1. APIからカテゴリ取得
+            ok, group_result = self.cc.get_groups()
             if ok is False:
                 QApplication.restoreOverrideCursor()
-                self.util.dlg_warning(result)
+                self.util.dlg_warning(group_result)
                 return
-            if not result:
+            if not group_result:
                 self.list_all_clicked()
                 return
-            # ページングで全件取得
+            # 2. ページングで全件取得
             from PyQt5.QtWidgets import QProgressDialog
             rows_per_page = 1000
             start = 0
@@ -349,10 +350,21 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             if all_results:
                 from qgis.core import QgsMessageLog, Qgis
                 try:
-                    from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
+                    import sqlite3, json
                     db_path = self._get_cache_db_path()
                     QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
+                    # --- パッケージ保存 ---
+                    from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
                     save_ckan_packages_to_sqlite(db_path, all_results)
+                    # --- カテゴリリストも保存 ---
+                    conn = sqlite3.connect(db_path)
+                    c = conn.cursor()
+                    c.execute('''CREATE TABLE IF NOT EXISTS groups (raw_json TEXT)''')
+                    c.execute('DELETE FROM groups')
+                    for group in group_result:
+                        c.execute('INSERT INTO groups (raw_json) VALUES (?)', (json.dumps(group),))
+                    conn.commit()
+                    conn.close()
                     QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has finished."), 'CKAN-Browser', Qgis.Info)
                     self.util.msg_log_debug(self.util.tr(u"Saved {} records to SQLite DB: {}.").format(len(all_results), db_path))
                 except Exception as e:
@@ -388,35 +400,30 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
 
             self.util.msg_log_debug('before get_groups')
 
-            # Get and add category (group) list (with debug output)
-            ok, result = self.cc.get_groups()
-            self.util.msg_log_debug(f'get_groups ok={ok}, result={result}')
-            if not ok:
-                self.util.dlg_warning(self.util.tr('Failed to get categories: {0}').format(result))
-            elif not result:
-                self.util.dlg_warning(self.util.tr('Category list is empty. Please check CKAN server or network settings.'))
-            else:
-                from PyQt5.QtCore import Qt
-                from PyQt5.QtWidgets import QListWidgetItem
-                for group in result:
-                    if isinstance(group, dict):
-                        title = group.get('title') or group.get('name', '')
-                        self.util.msg_log_debug(f'Add group: {title}')
-                        item = QListWidgetItem(title)
-                        item.setData(Qt.UserRole, group)
-                    else:
-                        self.util.msg_log_debug(f'Add group: {group}')
-                        item = QListWidgetItem(str(group))
-                        item.setData(Qt.UserRole, {'name': str(group)})
-                    item.setCheckState(Qt.Unchecked)
-                    self.IDC_listGroup.addItem(item)
-            # --- ここでキャッシュDBから全リソースのformat一覧を取得し反映 ---
+            # --- カテゴリリストをSQLiteから取得 ---
             import sqlite3, json
             db_path = self._get_cache_db_path()
             all_results = []
             try:
                 conn = sqlite3.connect(db_path)
                 c = conn.cursor()
+                # カテゴリリスト取得
+                c.execute('SELECT raw_json FROM groups')
+                group_rows = c.fetchall()
+                if not group_rows:
+                    self.util.msg_log_error("DB groups table is empty")
+                else:
+                    from PyQt5.QtCore import Qt
+                    from PyQt5.QtWidgets import QListWidgetItem
+                    for row in group_rows:
+                        group = json.loads(row[0])
+                        title = group.get('title') or group.get('name', '')
+                        self.util.msg_log_debug(f'Add group: {title}')
+                        item = QListWidgetItem(title)
+                        item.setData(Qt.UserRole, group)
+                        item.setCheckState(Qt.Unchecked)
+                        self.IDC_listGroup.addItem(item)
+                # パッケージ一覧取得
                 c.execute('SELECT raw_json FROM packages')
                 rows = c.fetchall()
                 for row in rows:

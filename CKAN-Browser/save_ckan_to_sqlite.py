@@ -25,6 +25,13 @@ def save_ckan_packages_to_sqlite(db_path, packages):
         raw_json TEXT,
         FOREIGN KEY(package_id) REFERENCES packages(id)
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS groups (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        title TEXT,
+        description TEXT,
+        raw_json TEXT
+    )''')
     # データ挿入
     for pkg in packages:
         c.execute('''INSERT OR REPLACE INTO packages (id, title, notes, author, author_email, license_id, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?)''',
@@ -52,6 +59,33 @@ def save_ckan_packages_to_sqlite(db_path, packages):
     conn.commit()
     conn.close()
     # ログ出力は呼び出し元で行うこと
+
+def save_ckan_groups_to_sqlite(db_path, groups):
+    """
+    CKANグループリストをSQLiteに保存
+    """
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS groups (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        title TEXT,
+        description TEXT,
+        raw_json TEXT
+    )''')
+    c.execute('DELETE FROM groups')
+    for group in groups:
+        c.execute('''INSERT OR REPLACE INTO groups (id, name, title, description, raw_json) VALUES (?, ?, ?, ?, ?)''',
+            (
+                group.get('id'),
+                group.get('name'),
+                group.get('title'),
+                group.get('description'),
+                json.dumps(group, ensure_ascii=False)
+            )
+        )
+    conn.commit()
+    conn.close()
 
 if __name__ == '__main__':
     # 例: all_results = ... (全データセットのリスト)
