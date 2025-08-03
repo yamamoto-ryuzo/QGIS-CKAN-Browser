@@ -372,6 +372,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     self.util.msg_log_error(self.util.tr(u"SQLite save error: {}".format(e)))
                 self.update_format_list(all_results)
                 self.list_all_clicked()
+                self.window_loaded()  # カテゴリ一覧を再表示
         finally:
             QApplication.restoreOverrideCursor()
 
