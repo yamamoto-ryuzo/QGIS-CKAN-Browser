@@ -457,9 +457,10 @@ class Util:
                     QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字が自動判定できませんでした: {full_path}\nカンマ・セミコロン・タブ・コロン・スペースのいずれかで明確に区切られている必要があります。")
                     return
                 detected_encoding = enc
-                # 先頭行からカラム名を取得
+                # 先頭行からカラム名を取得（クォート除去強化＆デバッグ出力追加）
                 header = lines[0] if lines else ''
-                columns = [col.strip().strip('"\'') for col in header.strip().split(delimiter)] if header else []
+                columns = [col.strip().replace('"','').replace("'",'') for col in header.strip().split(delimiter)] if header else []
+                self.msg_log_debug(f"CSV columns: {columns}")
                 # 緯度経度カラム名候補
                 lat_candidates = ['lat', 'latitude', 'y', 'LAT', 'LATITUDE', 'Y']
                 lon_candidates = ['lon', 'lng', 'long', 'longitude', 'x', 'LON', 'LONG', 'LONGITUDE', 'X']
@@ -474,8 +475,8 @@ class Util:
                 # 日本語カラム名が両方見つかった場合のみ数値判定
                 def is_float(s):
                     try:
-                        float(s)
-                        return True
+                        # 前後の空白・クォートを除去してから判定
+                        return float(s.strip().strip('"\'')) is not None
                     except:
                         return False
                 if lat_col and lon_col:
