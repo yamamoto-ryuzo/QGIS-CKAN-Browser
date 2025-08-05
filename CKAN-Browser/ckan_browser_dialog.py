@@ -262,6 +262,14 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             resources = package.get('resources', [])
             filtered_resources = [res for res in resources if is_format_match(res)]
             all_resources.extend(filtered_resources)
+        # リソース一覧も選択変更時に必ず再表示
+        self.IDC_listRessources.clear()
+        for res in all_resources:
+            disp = u'{}: {}'.format(res.get('format', 'no format'), res.get('url', '(no url)'))
+            item = QListWidgetItem(disp)
+            item.setData(Qt.UserRole, res)
+            item.setCheckState(Qt.Checked)
+            self.IDC_listRessources.addItem(item)
         if hasattr(self, 'IDC_lblSelectedCount'):
             self.IDC_lblSelectedCount.setText(f"選択中　データセット: {len(selected_items)}件 / データ: {len(all_resources)}件")
     def _get_cache_db_path(self):
@@ -531,11 +539,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.__search_package()
 
     def resultitemchanged(self, current, previous):
-        # 選択データセット変更時、詳細はcurrentのみ、リソースは全選択分表示
+        # 選択データセット変更時、詳細はcurrentのみ、リソースはselected_itemsベースで再表示
         self.IDC_textDetails.setText('')
         self.IDC_listRessources.clear()
         self.IDC_plainTextLink.clear()
-        selected_items = self.IDC_listResults.selectedItems()
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         def is_format_match(res):
@@ -566,7 +573,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     )
                 )
                 self.IDC_textDetails.setText(details_text)
-        # リソース一覧は全選択分
+        # リソース一覧は選択状態に応じて毎回再構築（selected_itemsベースで統一）
+        selected_items = self.IDC_listResults.selectedItems()
         all_resources = []
         for item in selected_items:
             package = item.data(Qt.UserRole)
@@ -583,7 +591,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             self.IDC_listRessources.addItem(item)
         # 選択数（データセット数・リソース数）を表示
         if hasattr(self, 'IDC_lblSelectedCount'):
-            self.IDC_lblSelectedCount.setText(f"選択中　データセット: {len(selected_items)}件 / データ: {len(all_resources)}件")
+            sel_count = len(selected_items)
+            self.IDC_lblSelectedCount.setText(f"選択中　データセット: {sel_count}件 / データ: {len(all_resources)}件")
 
     def resource_item_changed(self, new_item):
         if new_item is None:
