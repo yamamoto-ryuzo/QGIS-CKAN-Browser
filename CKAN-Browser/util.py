@@ -431,7 +431,10 @@ class Util:
         delimiter_names = {',': 'カンマ', ';': 'セミコロン', '\t': 'タブ', ':': 'コロン', ' ': 'スペース'}
         delimiter_counts = {d: 0 for d in delimiters}
         lines = []
-        encodings = ['utf-8', 'cp932', 'windows-1252', 'shift_jis', 'iso-8859-1']
+        encodings = [
+            'utf-8', 'utf-8-sig', 'utf-16', 'cp932', 'shift_jis',
+            'euc-jp', 'windows-1252', 'iso-8859-1', 'ascii'
+        ]
         delimiter = None
         detected_encoding = None
         for enc in encodings:
