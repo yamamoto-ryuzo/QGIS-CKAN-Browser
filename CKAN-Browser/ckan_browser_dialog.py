@@ -232,6 +232,8 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             self.IDC_listResults.selectionModel().selectionChanged.connect(self.update_selected_count)
         if hasattr(self, 'IDC_listRessources'):
             self.IDC_listRessources.itemChanged.connect(self.update_resource_checked_count)
+        # ダイアログ起動時に一度全件検索を実施（初期表示）
+        self.list_all_clicked()
 
     def update_resource_checked_count(self, item=None):
         checked_count = 0
