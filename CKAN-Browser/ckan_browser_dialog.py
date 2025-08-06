@@ -3,7 +3,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 
 class DataFetchThread(QThread):
-    result_ready = pyqtSignal(list, int, int)  # (page_results, result_count, page_count)
+    result_ready = pyqtSignal(list, int, int, int)  # (page_results, result_count, page_count, total_resource_count)
 
     def __init__(self, db_path, format_text, format_lc, current_page, results_limit, search_txt=None, group_names=None):
         super().__init__()
@@ -19,6 +19,7 @@ class DataFetchThread(QThread):
         import sqlite3
         filtered_results = []
         result_count = 0
+        total_resource_count = 0
         try:
             conn = sqlite3.connect(self.db_path)
             c = conn.cursor()
@@ -74,15 +75,18 @@ class DataFetchThread(QThread):
                 else:
                     if any(self.format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])) and search_hit:
                         filtered_results.append(entry)
+            # 全件分のリソース数を集計
+            total_resource_count = sum(len(entry.get('resources', [])) for entry in filtered_results)
             conn.close()
         except Exception as e:
             filtered_results = []
+            total_resource_count = 0
         result_count = len(filtered_results)
         page_count = max(1, (result_count + self.results_limit - 1) // self.results_limit)
         start_idx = (self.current_page - 1) * self.results_limit
         end_idx = start_idx + self.results_limit
         page_results = filtered_results[start_idx:end_idx]
-        self.result_ready.emit(page_results, result_count, page_count)
+        self.result_ready.emit(page_results, result_count, page_count, total_resource_count)
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
@@ -509,11 +513,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
         self.data_thread.result_ready.connect(self._on_data_ready)
         self.data_thread.start()
 
-    def _on_data_ready(self, page_results, result_count, page_count):
+    def _on_data_ready(self, page_results, result_count, page_count, total_resource_count):
         QApplication.restoreOverrideCursor()
         self.result_count = result_count
         self.page_count = page_count
-        erg_text = self.util.tr(u'py_dlg_base_result_count').format(self.result_count)
+        # 全検索結果分のリソース数を表示
+        erg_text = f"検索結果　データセット: {self.result_count}件 / データ: {total_resource_count}件"
         self.util.msg_log_debug(erg_text)
         page_text = self.util.tr(u'py_dlg_base_page_count').format(self.current_page, self.page_count)
         self.IDC_lblSuchergebnisse.setText(erg_text)
