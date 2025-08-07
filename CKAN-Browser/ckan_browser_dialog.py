@@ -455,6 +455,11 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 self.util.msg_log_error(f"DB read error: {e}")
                 all_results = None
             self.update_format_list(all_results)
+            # 起動時に必ず検索結果を表示
+            self.list_all_clicked()
+        except Exception as e:
+            self.util.msg_log_error(f"window_loaded error: {e}")
+            self.util.dlg_warning(f"起動時エラー: {e}")
         finally:
             QApplication.restoreOverrideCursor()
 
