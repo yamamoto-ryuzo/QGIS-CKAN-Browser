@@ -12,8 +12,18 @@ Inspired by participation in the Tokyo Open Data Hackathon (Visualization Divisi
 https://odhackathon.metro.tokyo.lg.jp/
 
 　【参考】  
-　　　渋谷区のオープンデータ（REST）：https://services3.arcgis.com/UtdeFTavkHfI94t2/arcgis/rest/services  
-　　　東京都のオープンデータ（CKAN）：https://catalog.data.metro.tokyo.lg.jp/api/3/action/  
+・DATA GO.JP:
+　https://www.data.go.jp/data/api/3
+・G空間情報センター:
+　https://www.geospatial.jp/ckan/api/3
+・東京都オープンデータカタログサイト
+　 https://catalog.data.metro.tokyo.lg.jp/api/3
+・地質調査総合センターデータカタログ
+　https://data.gsj.jp/gkan/api/3
+・姫路市・播磨圏域連携中枢都市圏オープンデータカタログサイト
+　https://city.himeji.gkan.jp/gkan/api/3
+・ビッグデータ&オープンデータ・イニシアティブ九州
+　https://data.bodik.jp/
 
 ## 概要 / Overview
 QGIS用CKAN-Browserプラグインの拡張・修正版です。
@@ -74,3 +84,4 @@ You can search and download datasets from CKAN open data portals and use them in
 
 ## 連絡先 / Contact
 - GitHub: [yamamoto-ryuzo](https://github.com/yamamoto-ryuzo)
+
