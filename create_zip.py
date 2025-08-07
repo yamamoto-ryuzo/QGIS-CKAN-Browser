@@ -81,6 +81,7 @@ def main():
     new_ver = bump_patch(ver)
     new_verstr = version_to_str(new_ver)
 
+
     # metadata_yamamoto.txtのバージョン書き換え
     with open(META_FILE, encoding='utf-8') as f:
         lines = f.readlines()
@@ -90,6 +91,14 @@ def main():
                 f.write(f'version={new_verstr}\n')
             else:
                 f.write(line)
+
+    # Changlog_yamamoto.txtにバージョン履歴を追記
+    import datetime
+    changelog_file = 'Changlog_yamamoto.md'
+    today = datetime.date.today().strftime('%Y-%m-%d')
+    changelog_entry = f"\n## {new_verstr} ({today})\n- 自動生成: バージョンアップおよびパッケージ作成\n"
+    with open(changelog_file, 'a', encoding='utf-8') as f:
+        f.write(changelog_entry)
 
     # 旧ZIP削除（ひとつ前のバージョンのみ削除、他は残す）
     prev_verstr = version_to_str(ver)

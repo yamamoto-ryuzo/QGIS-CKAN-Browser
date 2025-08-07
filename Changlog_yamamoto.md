@@ -12,3 +12,6 @@ V1.0.0 QGIS用CKAN-Browserプラグイン yamamoto版 初版公開
 - バージョン・更新履歴は metadata_yamamoto.txt, Changlog_yamamoto.txt で管理
 
 
+
+## V1.2.3 (2025-08-07)
+- 自動生成: バージョンアップおよびパッケージ作成
