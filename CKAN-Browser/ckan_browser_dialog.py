@@ -75,8 +75,14 @@ class DataFetchThread(QThread):
                 else:
                     if any(self.format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])) and search_hit:
                         filtered_results.append(entry)
-            # 全件分のリソース数を集計
-            total_resource_count = sum(len(entry.get('resources', [])) for entry in filtered_results)
+            # 全件分のリソース数を集計（形式フィルタを考慮）
+            if self.format_text == 'すべて':
+                total_resource_count = sum(len(entry.get('resources', [])) for entry in filtered_results)
+            else:
+                total_resource_count = sum(
+                    len([res for res in entry.get('resources', []) if self.format_lc in (res.get('format') or '').strip().lower()])
+                    for entry in filtered_results
+                )
             conn.close()
         except Exception as e:
             filtered_results = []
