@@ -689,7 +689,88 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 continue
             # 通常のダウンロード・追加処理
             if format_lower == 'wms':
-                format_lower = 'wmts'
+                # WMSの場合はGetCapabilitiesで情報取得し、最初のレイヤ名でQGISにレイヤ追加
+                try:
+                    import requests
+                    from xml.etree import ElementTree as ET
+                    wms_url = url_val
+                    if not wms_url.lower().endswith('?'):
+                        if '?' in wms_url:
+                            wms_url += '&'
+                        else:
+                            wms_url += '?'
+                    getcap_url = wms_url + 'SERVICE=WMS&REQUEST=GetCapabilities'
+                    resp = requests.get(getcap_url, timeout=10)
+                    if resp.status_code == 200:
+                        # レイヤ名を取得
+                        try:
+                            root = ET.fromstring(resp.content)
+                            ns = {'wms': 'http://www.opengis.net/wms'}
+                            # WMS 1.3.0/1.1.1両対応
+                            # --- 最下層のLayer Nameを再帰的に取得 ---
+                            def find_leaf_layer_names(elem):
+                                ns_wms = '{http://www.opengis.net/wms}'
+                                result = []
+                                # 子Layerを取得
+                                children = elem.findall(f'{ns_wms}Layer')
+                                if not children:
+                                    children = elem.findall('Layer')
+                                if children:
+                                    for child in children:
+                                        result.extend(find_leaf_layer_names(child))
+                                else:
+                                    # 子LayerがなければこのLayerがleaf
+                                    name_elem = elem.find(f'{ns_wms}Name')
+                                    if name_elem is None:
+                                        name_elem = elem.find('Name')
+                                    if name_elem is not None and name_elem.text:
+                                        result.append(name_elem.text)
+                                return result
+
+                            # ルートからCapability/Layerを探す
+                            cap_layer = None
+                            ns_wms = '{http://www.opengis.net/wms}'
+                            cap = root.find(f'{ns_wms}Capability')
+                            if cap is None:
+                                cap = root.find('Capability')
+                            if cap is not None:
+                                cap_layer = cap.find(f'{ns_wms}Layer')
+                                if cap_layer is None:
+                                    cap_layer = cap.find('Layer')
+                            leaf_names = []
+                            if cap_layer is not None:
+                                leaf_names = find_leaf_layer_names(cap_layer)
+                            if not leaf_names:
+                                # fallback: 旧方式
+                                layer_elems = root.findall('.//{http://www.opengis.net/wms}Layer')
+                                if not layer_elems:
+                                    layer_elems = root.findall('.//Layer')
+                                for lyr in layer_elems:
+                                    name_elem = lyr.find('{http://www.opengis.net/wms}Name')
+                                    if name_elem is None:
+                                        name_elem = lyr.find('Name')
+                                    if name_elem is not None and name_elem.text:
+                                        leaf_names.append(name_elem.text)
+                            if not leaf_names:
+                                self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], 'No layer name found in WMS'))
+                                continue
+                            # 最初のleaf layer名を使う
+                            layer_name = leaf_names[0]
+                            wms_params = f"crs=EPSG:4326&format=image/png&layers={layer_name}&url={wms_url}&styles="
+                            from qgis.core import QgsRasterLayer, QgsProject
+                            wms_layer = QgsRasterLayer(wms_params, resource['name'], 'wms')
+                            if wms_layer.isValid():
+                                QgsProject.instance().addMapLayer(wms_layer)
+                                self.util.msg_log_debug(f'WMS layer added: {wms_url} (layer: {layer_name})')
+                            else:
+                                self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], f'WMS layer invalid (layer: {layer_name})'))
+                        except Exception as e:
+                            self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], f'WMS parse error: {e}'))
+                    else:
+                        self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], f'GetCapabilities failed: {resp.status_code}'))
+                except Exception as e:
+                    self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], str(e)))
+                continue
             if format_lower == 'wmts':
                 resource_url = url_val
                 resource_url_lower = resource_url.lower()

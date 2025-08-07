@@ -1,6 +1,7 @@
-V1.0.0 (2025-07-27)
-【初期リリース】
-- QGIS用CKAN-Browserプラグイン yamamoto版 初版公開
+
+V1.2.0 WMS対応
+V1.1.0 XYZ対応
+V1.0.0 QGIS用CKAN-Browserプラグイン yamamoto版 初版公開
 
 【V1.0.0 修正・追加項目】
 - ローカルSQLiteキャッシュ検索時もカテゴリ（グループ）フィルタが有効
