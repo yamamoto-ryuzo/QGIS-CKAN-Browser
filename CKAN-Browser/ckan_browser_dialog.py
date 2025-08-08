@@ -135,6 +135,20 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class CKANBrowserDialog(QDialog, FORM_CLASS):
+    def on_IDC_bSelectAllResources_clicked(self):
+        self.select_all_resources()
+    def select_all_resources(self):
+        """データセットもリソースも全選択する"""
+        # データセット全選択
+        if hasattr(self, 'IDC_listResults'):
+            self.IDC_listResults.selectAll()
+        # リソース全選択（チェックON）
+        if hasattr(self, 'IDC_listRessources'):
+            for i in range(self.IDC_listRessources.count()):
+                item = self.IDC_listRessources.item(i)
+                item.setCheckState(Qt.Checked)
+        self.update_resource_checked_count()
+
     def clear_selection(self):
         """検索結果リストの選択をクリアする"""
         if hasattr(self, 'IDC_listResults'):
@@ -242,6 +256,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             self.IDC_listResults.selectionModel().selectionChanged.connect(self.update_selected_count)
         if hasattr(self, 'IDC_listRessources'):
             self.IDC_listRessources.itemChanged.connect(self.update_resource_checked_count)
+        # --- 全選択ボタンのシグナル接続（明示的に） ---
+        if hasattr(self, 'IDC_bSelectAllResources'):
+            self.IDC_bSelectAllResources.clicked.connect(self.select_all_resources)
+        # --- 全選択ボタンのシグナル接続（存在する場合） ---
+        if hasattr(self, 'IDC_bSelectAllResources'):
+            self.IDC_bSelectAllResources.clicked.connect(self.select_all_resources)
         # ダイアログ起動時に一度全件検索を実施（初期表示）
         self.list_all_clicked()
 

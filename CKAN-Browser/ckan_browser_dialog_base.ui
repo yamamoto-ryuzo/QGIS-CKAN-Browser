@@ -364,16 +364,23 @@
           </size>
          </property>
         </widget>
-       <item>
-        <widget class="QPushButton" name="IDC_bClearSelection">
-         <property name="text">
-          <string>選択クリア</string>
-         </property>
-         <property name="toolTip">
-          <string>検索結果の選択をクリアします</string>
-         </property>
-        </widget>
-       </item>
+   <item>
+    <widget class="QPushButton" name="IDC_bClearSelection">
+     <property name="text">
+      <string>選択クリア</string>
+     </property>
+     <property name="toolTip">
+      <string>検索結果の選択をクリアします</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="IDC_bSelectAllResources">
+     <property name="text">
+      <string>全選択</string>
+     </property>
+    </widget>
+   </item>
        </item>
        <item>
         <widget class="QLabel" name="IDC_lblPage">
@@ -519,27 +526,27 @@
         </widget>
        </item>
       </layout>
-     </item>
-     <item>
-      <widget class="QListWidget" name="IDC_listRessources">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>160</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-      <item>
-       <widget class="QLabel" name="IDC_lblSelectedCount">
-        <property name="text">
-         <string>選択中: 0件</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
+  </item>
+  <item>
+   <widget class="QListWidget" name="IDC_listRessources">
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>160</height>
+     </size>
+    </property>
+   </widget>
+  </item>
+  <item>
+   <widget class="QLabel" name="IDC_lblSelectedCount">
+    <property name="text">
+     <string>選択中: 0件</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+  </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_9">
        <item>
