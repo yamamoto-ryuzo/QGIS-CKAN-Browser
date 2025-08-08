@@ -465,8 +465,29 @@ class Util:
                 columns = [col.strip().replace('"','').replace("'",'') for col in header.strip().split(delimiter)] if header else []
                 self.msg_log_debug(f"CSV columns: {columns}")
                 # 緯度経度カラム名候補
-                lat_candidates = ['lat', 'latitude', 'y', 'LAT', 'LATITUDE', 'Y']
-                lon_candidates = ['lon', 'lng', 'long', 'longitude', 'x', 'LON', 'LONG', 'LONGITUDE', 'X']
+                lat_candidates = ['lat', 'latitude', 'y']
+                lon_candidates = ['lon', 'lng', 'long', 'longitude', 'x']
+                # lat_candidates/lon_candidatesリストは不要。判定は下記関数で行う。
+
+                def match_lat_col(c):
+                    cl = c.lower()
+                    # 完全一致（lat_candidatesのいずれか）
+                    if cl in lat_candidates:
+                        return True
+                    # サフィックス一致: _lat, -lat, _latitude, -latitude, _y, -y など
+                    for b in lat_candidates:
+                        if cl.endswith('_' + b) or cl.endswith('-' + b):
+                            return True
+                    return False
+
+                def match_lon_col(c):
+                    cl = c.lower()
+                    if cl in lon_candidates:
+                        return True
+                    for b in lon_candidates:
+                        if cl.endswith('_' + b) or cl.endswith('-' + b):
+                            return True
+                    return False
                 lat_col = None
                 lon_col = None
                 # まず日本語カラム名（部分一致）を優先
@@ -475,6 +496,10 @@ class Util:
                         lat_col = c
                     if ('経度' in c) and lon_col is None:
                         lon_col = c
+                # 日本語でなければ自動判定
+                if not (lat_col and lon_col):
+                    lat_col = next((c for c in columns if match_lat_col(c)), None)
+                    lon_col = next((c for c in columns if match_lon_col(c)), None)
                 # 日本語カラム名が両方見つかった場合のみ数値判定
                 def is_float(s):
                     try:
@@ -498,13 +523,7 @@ class Util:
                         lat_col = None
                         lon_col = None
                 else:
-                    # 日本語でなければ完全一致のみ
-                    lat_col = next((c for c in columns if c in lat_candidates), None)
-                    lon_col = next((c for c in columns if c in lon_candidates), None)
-                    if lat_col and lon_col:
-                        self.msg_log_debug(f"緯度経度カラム自動検出: lat={lat_col}, lon={lon_col} (完全一致)")
-                    else:
-                        self.msg_log_debug(f"緯度経度カラムが見つかりません: columns={columns}")
+                    self.msg_log_debug(f"緯度経度カラムが見つかりません: columns={columns}")
                 break
             except Exception as e:
                 self.msg_log_debug(f"CSV delimiter auto-detect failed with {enc}: {e}")
