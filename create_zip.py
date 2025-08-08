@@ -92,14 +92,6 @@ def main():
             else:
                 f.write(line)
 
-    # Changlog_yamamoto.txtにバージョン履歴を追記
-    import datetime
-    changelog_file = 'Changlog_yamamoto.md'
-    today = datetime.date.today().strftime('%Y-%m-%d')
-    changelog_entry = f"\n## {new_verstr} ({today})\n- 自動生成: バージョンアップおよびパッケージ作成\n"
-    with open(changelog_file, 'a', encoding='utf-8') as f:
-        f.write(changelog_entry)
-
     # 旧ZIP削除（ひとつ前のバージョンのみ削除、他は残す）
     prev_verstr = version_to_str(ver)
     prev_zipname = f'{ZIP_PREFIX}{ver[0]}.{ver[1]}.{ver[2]}.zip'
@@ -135,3 +127,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
