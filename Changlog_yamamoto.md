@@ -10,6 +10,7 @@ V1.0.0 QGIS用CKAN-Browserプラグイン yamamoto版 初版公開
 - CSVに緯度経度カラムがあれば自動でポイントジオメトリ化
 - UIの一部改善
 - バージョン・更新履歴は metadata_yamamoto.txt, Changlog_yamamoto.txt で管理
+<<<<<<< HEAD
 
 
 
@@ -60,3 +61,5 @@ V1.0.0 QGIS用CKAN-Browserプラグイン yamamoto版 初版公開
 
 ## V1.2.18 (2025-08-09)
 - 自動生成: バージョンアップおよびパッケージ作成
+=======
+>>>>>>> dc16ca5383f9a47523d32282e49c0e0d69096d29
