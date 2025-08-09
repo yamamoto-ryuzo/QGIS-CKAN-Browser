@@ -73,14 +73,14 @@ class DataFetchThread(QThread):
                     if search_hit:
                         filtered_results.append(entry)
                 else:
-                    if any(self.format_lc in (res.get('format','').strip().lower()) for res in entry.get('resources', [])) and search_hit:
+                    if any(self.format_lc == (res.get('format','').strip().lower()) for res in entry.get('resources', [])) and search_hit:
                         filtered_results.append(entry)
             # 全件分のリソース数を集計（形式フィルタを考慮）
             if self.format_text == 'すべて':
                 total_resource_count = sum(len(entry.get('resources', [])) for entry in filtered_results)
             else:
                 total_resource_count = sum(
-                    len([res for res in entry.get('resources', []) if self.format_lc in (res.get('format') or '').strip().lower()])
+                    len([res for res in entry.get('resources', []) if self.format_lc == (res.get('format') or '').strip().lower()])
                     for entry in filtered_results
                 )
             conn.close()
@@ -151,7 +151,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 return True
             if 'format' in res and res['format']:
                 fmt = res['format'].strip().lower()
-                if format_lc in fmt or fmt in format_lc:
+                if format_lc == fmt:
                     return True
             return False
         all_resources = []
