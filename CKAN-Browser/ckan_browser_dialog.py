@@ -696,6 +696,10 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             return
             if hasattr(self, 'IDC_lblSelectedCount'):
                 self.IDC_lblSelectedCount.setText("選択中: 0件")
+
+        # --- ここからダイアログ抑制用フラグ ---
+        already_loaded_dialog_answer = None
+
         for resource in all_resources:
             # パッケージIDからpackage情報取得
             package_id = resource.get('_package_id')
@@ -827,11 +831,22 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             do_download = True
             do_delete = False
             if os.path.isfile(dest_file):
-                if QMessageBox.Yes == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_data_already_loaded')):
-                    do_delete = True
-                    do_download = True
+                if already_loaded_dialog_answer is None:
+                    # 1回目だけダイアログ表示
+                    if QMessageBox.Yes == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_data_already_loaded')):
+                        already_loaded_dialog_answer = QMessageBox.Yes
+                        do_delete = True
+                        do_download = True
+                    else:
+                        already_loaded_dialog_answer = QMessageBox.No
+                        do_download = False
                 else:
-                    do_download = False
+                    # 2回目以降は前回の選択を継続
+                    if already_loaded_dialog_answer == QMessageBox.Yes:
+                        do_delete = True
+                        do_download = True
+                    else:
+                        do_download = False
             download_failed = False
             if do_download is True:
                 QApplication.setOverrideCursor(Qt.WaitCursor)
