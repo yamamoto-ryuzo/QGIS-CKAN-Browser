@@ -138,40 +138,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
     def on_IDC_bSelectAllResources_clicked(self):
         self.select_all_resources()
     def select_all_resources(self):
-        """全ページ分のデータセット・リソースを全選択・全チェックする"""
-        import sqlite3, json
-        db_path = self._get_cache_db_path()
-        all_results = []
-        try:
-            conn = sqlite3.connect(db_path)
-            c = conn.cursor()
-            c.execute('SELECT raw_json FROM packages')
-            rows = c.fetchall()
-            for row in rows:
-                entry = json.loads(row[0])
-                all_results.append(entry)
-            conn.close()
-        except Exception as e:
-            self.util.msg_log_error(f"DB read error (全選択): {e}")
-            all_results = []
-
-        # データセット全追加・全選択
+        """検索結果リストに表示されているデータセット・リソースのみ全選択・全チェックする"""
+        # 検索結果リストの内容をそのまま全選択
         if hasattr(self, 'IDC_listResults'):
-            self.IDC_listResults.clear()
-            for entry in all_results:
-                title_txt = entry.get('title', 'no title')
-                if isinstance(title_txt, dict):
-                    title_txt = next(iter(list(title_txt.values())), 'no title')
-                elif isinstance(title_txt, list):
-                    title_txt = title_txt[0] if title_txt else 'no title'
-                item = QListWidgetItem(title_txt)
-                item.setData(Qt.UserRole, entry)
-                self.IDC_listResults.addItem(item)
-            # 全選択状態に
             self.IDC_listResults.selectAll()
-
-        # 全リソースをリストアップし全チェック
-        all_resources = []
+        # リソースも「現在の検索結果・形式フィルタ」に従い全チェック
+        selected_items = self.IDC_listResults.selectedItems() if hasattr(self, 'IDC_listResults') else []
         format_text = self.IDC_comboFormat.currentText() if hasattr(self, 'IDC_comboFormat') else 'すべて'
         format_lc = format_text.lower()
         def is_format_match(res):
@@ -182,8 +154,12 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 if format_lc in fmt or fmt in format_lc:
                     return True
             return False
-        for entry in all_results:
-            resources = entry.get('resources', [])
+        all_resources = []
+        for item in selected_items:
+            package = item.data(Qt.UserRole)
+            if package is None:
+                continue
+            resources = package.get('resources', [])
             filtered_resources = [res for res in resources if is_format_match(res)]
             all_resources.extend(filtered_resources)
         if hasattr(self, 'IDC_listRessources'):
