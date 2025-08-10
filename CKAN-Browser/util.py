@@ -423,6 +423,9 @@ class Util:
         wfs_dlg.show()
 
 
+    # CSV区切り自動判定失敗時のダイアログ抑制用フラグ（1回目だけ表示）
+    _csv_delim_dialog_answer = None
+
     def _open_csv(self, full_path):
         # CSVを属性テーブルまたはポイントレイヤとして読み込む（区切り文字自動判定＆緯度経度カラム自動検出）
         self.msg_log_debug(u'add CSV file: {0}'.format(full_path))
@@ -457,7 +460,11 @@ class Util:
                     self.msg_log_debug(f"CSV delimiter auto-detected (only one type found): '{delimiter}' ({delimiter_names.get(delimiter, delimiter)}) [{enc}]")
                 else:
                     self.msg_log_debug(f"CSV delimiter auto-detect ambiguous: {delimiter_counts} [{enc}]")
-                    QMessageBox.warning(self.main_win, self.dlg_caption, f"CSVファイルの区切り文字が自動判定できませんでした: {full_path}\nカンマ・セミコロン・タブ・コロン・スペースのいずれかで明確に区切られている必要があります。")
+                    # --- 1回目だけダイアログ表示し、以降は抑制 ---
+                    if Util._csv_delim_dialog_answer is None:
+                        msg = f"CSVファイルの区切り文字が自動判定できませんでした: {full_path}\nカンマ・セミコロン・タブ・コロン・スペースのいずれかで明確に区切られている必要があります。"
+                        QMessageBox.warning(self.main_win, self.dlg_caption, msg)
+                        Util._csv_delim_dialog_answer = True
                     return
                 detected_encoding = enc
                 # 先頭行からカラム名を取得（クォート除去強化＆デバッグ出力追加）

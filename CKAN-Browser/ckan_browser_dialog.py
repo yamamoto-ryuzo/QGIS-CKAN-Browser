@@ -698,7 +698,14 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 self.IDC_lblSelectedCount.setText("選択中: 0件")
 
         # --- ここからダイアログ抑制用フラグ ---
+        # 既存ファイル上書き確認ダイアログの選択（1回目だけ表示、以降は自動適用）
         already_loaded_dialog_answer = None
+        # 大容量ファイル警告ダイアログの選択（1回目だけ表示、以降は自動適用）
+        bigfile_dialog_answer = None
+        # ZIP展開失敗時のダイアログ選択（1回目だけ表示、以降は自動適用）
+        extract_dialog_answer = None
+        # レイヤ追加失敗時のマネージャで開くか確認ダイアログ選択（1回目だけ表示、以降は自動適用）
+        addlayer_dialog_answer = None
 
         for resource in all_resources:
             # パッケージIDからpackage情報取得
@@ -831,8 +838,9 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             do_download = True
             do_delete = False
             if os.path.isfile(dest_file):
+                # --- 既存ファイル上書き確認ダイアログ（1回目だけ表示） ---
                 if already_loaded_dialog_answer is None:
-                    # 1回目だけダイアログ表示
+                    # 1回目だけダイアログ表示し、選択を記憶
                     if QMessageBox.Yes == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_data_already_loaded')):
                         already_loaded_dialog_answer = QMessageBox.Yes
                         do_delete = True
@@ -841,7 +849,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                         already_loaded_dialog_answer = QMessageBox.No
                         do_download = False
                 else:
-                    # 2回目以降は前回の選択を継続
+                    # 2回目以降は前回の選択を自動適用
                     if already_loaded_dialog_answer == QMessageBox.Yes:
                         do_delete = True
                         do_download = True
@@ -855,8 +863,19 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                 QApplication.restoreOverrideCursor()
                 if not file_size_ok:
                     file_size = 0
-                if file_size > 50 and QMessageBox.No == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_big_file').format(file_size)):
-                    continue
+                # --- 大容量ファイル警告ダイアログ（1回目だけ表示） ---
+                if file_size > 50:
+                    if bigfile_dialog_answer is None:
+                        # 1回目だけダイアログ表示し、選択を記憶
+                        if QMessageBox.No == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_big_file').format(file_size)):
+                            bigfile_dialog_answer = QMessageBox.No
+                            continue
+                        else:
+                            bigfile_dialog_answer = QMessageBox.Yes
+                    else:
+                        # 2回目以降は前回の選択を自動適用
+                        if bigfile_dialog_answer == QMessageBox.No:
+                            continue
                 if hdr_exception:
                     self.util.msg_log_error(u'error getting size of response, HEAD request failed: {}'.format(hdr_exception))
                 self.util.msg_log_debug('setting wait cursor')
@@ -879,17 +898,38 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     if os.path.basename(dest_file).lower().endswith('.zip'):
                         ok, err_msg = self.util.extract_zip(dest_file, dest_dir)
                         QApplication.restoreOverrideCursor()
+                        # --- ZIP展開失敗時のダイアログ（1回目だけ表示） ---
                         if ok is False:
-                            self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_not_extracted').format(err_msg))
-                            continue
+                            if extract_dialog_answer is None:
+                                # 1回目だけダイアログ表示し、選択を記憶
+                                if QMessageBox.No == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_warn_not_extracted').format(err_msg)):
+                                    extract_dialog_answer = QMessageBox.No
+                                    continue
+                                else:
+                                    extract_dialog_answer = QMessageBox.Yes
+                            else:
+                                # 2回目以降は前回の選択を自動適用
+                                if extract_dialog_answer == QMessageBox.No:
+                                    continue
             # XYZ形式でURLが空や不正な場合は何もしない（警告も不要）
             ok, err_msg = self.util.add_lyrs_from_dir(dest_dir, resource['name'], resource['url'])
             if ok is False:
-                if isinstance(err_msg, dict):
-                    if QMessageBox.Yes == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_open_manager').format(resource['url'])):
-                        self.util.open_in_manager(err_msg["dir_path"])
+                # --- レイヤ追加失敗時のマネージャで開くか確認ダイアログ（1回目だけ表示） ---
+                if addlayer_dialog_answer is None:
+                    # 1回目だけダイアログ表示し、選択を記憶
+                    if isinstance(err_msg, dict):
+                        if QMessageBox.Yes == self.util.dlg_yes_no(self.util.tr(u'py_dlg_base_open_manager').format(resource['url'])):
+                            addlayer_dialog_answer = QMessageBox.Yes
+                            self.util.open_in_manager(err_msg["dir_path"])
+                        else:
+                            addlayer_dialog_answer = QMessageBox.No
+                    else:
+                        self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], err_msg))
+                        addlayer_dialog_answer = QMessageBox.No
                 else:
-                    self.util.dlg_warning(self.util.tr(u'py_dlg_base_lyr_not_loaded').format(resource['name'], err_msg))
+                    # 2回目以降は前回の選択を自動適用
+                    if addlayer_dialog_answer == QMessageBox.Yes and isinstance(err_msg, dict):
+                        self.util.open_in_manager(err_msg["dir_path"])
                 continue
 
     def next_page_clicked(self):
