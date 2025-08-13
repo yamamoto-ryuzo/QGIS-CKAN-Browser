@@ -35,18 +35,25 @@ class Settings:
         if self.cache_dir is None:
             self.cache_dir = ''
         self.ckan_url = qgis_settings.value(self.KEY_CKAN_API, 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/')
-        self.selected_ckan_servers = qgis_settings.value(self.KEY_SELECTED_CKAN_SERVERS, '')
-        # custom_serversはjson文字列として保存されている場合を考慮し、dict型でなければjson.loadsし、dictでなければ空dictにする
-        raw_custom_servers = qgis_settings.value(self.KEY_CUSTOM_SERVERS, '{}')
-        if isinstance(raw_custom_servers, dict):
-            self.custom_servers = raw_custom_servers
-        else:
+        # サーバリストはキャッシュフォルダに保存
+        if not self.cache_dir:
+            # デフォルトキャッシュディレクトリ
+            self.cache_dir = os.path.join(os.path.expanduser('~'), '.ckan_browser_cache')
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir, exist_ok=True)
+        servers_path = os.path.join(self.cache_dir, 'ckan_servers.json')
+        if os.path.exists(servers_path):
             try:
-                self.custom_servers = json.loads(raw_custom_servers)
-                if not isinstance(self.custom_servers, dict):
-                    self.custom_servers = {}
+                with open(servers_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.selected_ckan_servers = data.get('selected_ckan_servers', '')
+                    self.custom_servers = data.get('custom_servers', {})
             except Exception:
+                self.selected_ckan_servers = ''
                 self.custom_servers = {}
+        else:
+            self.selected_ckan_servers = ''
+            self.custom_servers = {}
         self.debug = qgis_settings.value(self.KEY_SHOW_DEBUG_INFO, False, bool)
         self.authcfg = qgis_settings.value(self.KEY_AUTHCFG, '')
         self.auth_propagate = qgis_settings.value(self.KEY_AUTH_PROPAGATE, False, bool)
@@ -58,10 +65,22 @@ class Settings:
         qgis_settings.setValue(self.KEY_CKAN_API, self.ckan_url)
         qgis_settings.setValue(self.KEY_AUTHCFG, self.authcfg)
         qgis_settings.setValue(self.KEY_AUTH_PROPAGATE, self.auth_propagate)
-        qgis_settings.setValue(self.KEY_SELECTED_CKAN_SERVERS, self.selected_ckan_servers)
-        # dict型はjson文字列にして保存
-        qgis_settings.setValue(self.KEY_CUSTOM_SERVERS, json.dumps(self.custom_servers))
         qgis_settings.setValue(self.KEY_SHOW_DEBUG_INFO, self.debug)
+        # サーバリストはキャッシュフォルダに保存
+        if not self.cache_dir:
+            self.cache_dir = os.path.join(os.path.expanduser('~'), '.ckan_browser_cache')
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir, exist_ok=True)
+        servers_path = os.path.join(self.cache_dir, 'ckan_servers.json')
+        data = {
+            'selected_ckan_servers': self.selected_ckan_servers,
+            'custom_servers': self.custom_servers
+        }
+        try:
+            with open(servers_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            QgsMessageLog.logMessage(f'Failed to save ckan_servers.json: {e}', 'CKAN-Browser', Qgis.Warning)
 
     def _determine_version(self):
         """http://gis.stackexchange.com/a/169266/8673"""
