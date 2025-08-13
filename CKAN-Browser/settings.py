@@ -47,7 +47,18 @@ class Settings:
                 with open(servers_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.selected_ckan_servers = data.get('selected_ckan_servers', '')
-                    self.custom_servers = data.get('custom_servers', {})
+                    # 既存データがstrの場合はtype=CKANでラップ
+                    loaded_custom = data.get('custom_servers', {})
+                    new_custom = {}
+                    for name, val in loaded_custom.items():
+                        if isinstance(val, dict) and 'url' in val and 'type' in val:
+                            new_custom[name] = val
+                        elif isinstance(val, str):
+                            new_custom[name] = {'url': val, 'type': 'CKAN'}
+                        else:
+                            # 不正な形式はスキップ
+                            continue
+                    self.custom_servers = new_custom
             except Exception:
                 self.selected_ckan_servers = ''
                 self.custom_servers = {}
@@ -72,6 +83,7 @@ class Settings:
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir, exist_ok=True)
         servers_path = os.path.join(self.cache_dir, 'ckan_servers.json')
+        # custom_serversの値は{name: {url, type}}形式で保存
         data = {
             'selected_ckan_servers': self.selected_ckan_servers,
             'custom_servers': self.custom_servers

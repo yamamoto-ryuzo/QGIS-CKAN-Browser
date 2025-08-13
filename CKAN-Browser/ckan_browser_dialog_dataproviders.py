@@ -127,8 +127,13 @@ class CKANBrowserDialogDataProviders(QDialog, FORM_CLASS):
                 selected_servers = self.settings.selected_ckan_servers.split('|')
                 self.servers = []
                 self.util.msg_log_debug(u'{} custom servers'.format(len(self.settings.custom_servers)))
-                for cs_name in self.settings.custom_servers:
-                    url = self.settings.custom_servers[cs_name]
+                for cs_name, cs_info in self.settings.custom_servers.items():
+                    # cs_info: {url, type}
+                    if isinstance(cs_info, dict):
+                        url = cs_info.get('url', '')
+                        # type情報は今後の拡張用。現状はCKANのみ想定
+                    else:
+                        url = cs_info  # 後方互換
                     si = ServerInstance(cs_name, cs_name, url, url, custom_entry=True)
                     si.selected = True if si.settings_key in selected_servers else False
                     self.servers.append(si)
@@ -251,7 +256,7 @@ class CKANBrowserDialogDataProviders(QDialog, FORM_CLASS):
             self.util.dlg_warning(self.util.tr('py_dlg_data_providers_custom_server_name_exists').format(server_name))
             return
 
-        self.settings.custom_servers[server_name] = api_url
+        self.settings.custom_servers[server_name] = {"url": api_url, "type": "CKAN"}
         self.settings.save()
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.window_loaded()
