@@ -417,7 +417,7 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
                     db_path = self._get_cache_db_path()
                     QgsMessageLog.logMessage(self.util.tr(u"Caching data to SQLite has started."), 'CKAN-Browser', Qgis.Info)
                     # --- パッケージ保存 ---
-                    from save_ckan_to_sqlite import save_ckan_packages_to_sqlite
+                    from .save_ckan_to_sqlite import save_ckan_packages_to_sqlite
                     save_ckan_packages_to_sqlite(db_path, all_results)
                     # --- カテゴリリストも保存 ---
                     conn = sqlite3.connect(db_path)
