@@ -5,7 +5,7 @@
 
 
 # 開発方針 / Development Policy
-東京オープンデータハッカソン（ビジュアライズ部門）への参加をきっかけに、東京オープンデータをQGISで検索・変換・取り込み・装飾まで簡単にできるよう機能強化を行います。
+東京オープンデータハッカソンへの参加をきっかけに、東京オープンデータをQGISで検索・変換・取り込み・装飾まで簡単にできるよう機能強化を行います。
 https://odhackathon.metro.tokyo.lg.jp/
 
 Inspired by participation in the Tokyo Open Data Hackathon (Visualization Division), this version aims to make it easier to search, convert, import, and style Tokyo open data in QGIS through enhanced features.
@@ -78,6 +78,7 @@ You can search and download datasets from CKAN open data portals and use them in
 
 ## 連絡先 / Contact
 - GitHub: [yamamoto-ryuzo](https://github.com/yamamoto-ryuzo)
+
 
 
 
