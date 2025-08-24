@@ -1,104 +1,83 @@
 
-QGIS CKAN-Browser
-=============
 
-QGIS PlugIn to load and display Open Data from CKAN enabled data portals.
-
-Sponsors:
-* v0.4: [City of Toronto](https://open.toronto.ca/)
-* v0.2.8 -> v0.3.0: [Amt der Kärntner Landesregierung - KAGIS](http://www.kagis.ktn.gv.at)
-
-[Change log](CKAN-Browser/metadata.txt)
-
-__DISCLAMER__
-
-_This plugin has been tested with various CKAN servers (**API v3 supported only**), but each and everyone has its own quirks which might result in failed downloads._
-
-The plugin queries the provided CKAN server, parse its response and tries to download resources according to the links provided in the response.
-If the provided metadata contains invalid links the plugin of course fails to download the selected resources.
-
-**Before opening an issue about a failed download please try to download the failing resource with a browser.**
-If the download works in the browser then it might be a bug in the plugin.
-
-1. Click on the resource
-2. Click to copy resource link
-3. Paste into browser and check if download works
-
-![](img/copy-resource-url.png)
-
-Bonus points for including log messages in the issue:
-`CKAN Browser Settings -> Miscellaneous -> Check "Show debug information in the 'Log Messages' panel"`
-
-## Install
-
-#### Within QGIS
-
-`Plugins -> Manage and Install Plugins -> All -> Search: CKAN-Browser -> Install plugin`
-
-#### From Zip
-
-* Download [CKANBrowser.zip](https://github.com/BergWerkGIS/QGIS-CKAN-Browser/blob/master/CKANBrowser.zip)
-* `QGIS -> Manage and Install Plugins -> Install from ZIP`
-* Select downloaded file `...`
-* `Install Plugin`
-
-#### From Source
-
-```
-git clone https://github.com/BergWerkGIS/QGIS-CKAN-Browser.git
-cd QGIS-CKAN-Browser/CKAN-Browser
-make clean
-make derase
-make deploy
-```
-
-## Use
-
-After successful install there is a new toolbar available (click on `Settings`):
-
-![CKAN Browser Toolbar](img/toolbar.png?raw=true)
-
-#### Settings
-
-1. Select a local directory where downloaded data will be cached
-2. Edit authentication settings if necessary
-3. Check debug messages - only necessary when reporting bugs
-4. `Save` settings and close
+# CKAN-Browser プラグイン（yamamoto版）
+# CKAN-Browser Plugin (yamamoto version)
 
 
-![CKAN Browser Settings](img/settings.png?raw=true)
+# 開発方針 / Development Policy
+東京オープンデータハッカソン（ビジュアライズ部門）への参加をきっかけに、東京オープンデータをQGISで検索・変換・取り込み・装飾まで簡単にできるよう機能強化を行います。
+https://odhackathon.metro.tokyo.lg.jp/
 
-#### Open CKAN Browser
+Inspired by participation in the Tokyo Open Data Hackathon (Visualization Division), this version aims to make it easier to search, convert, import, and style Tokyo open data in QGIS through enhanced features.
+https://odhackathon.metro.tokyo.lg.jp/
 
-1. Select the CKAN Server to use (see below)
-2. Enter your search term and press `<ENTER>` or click on `3`
-3. Search: query server with search term
-4. List of data sets found, click to get more details in `5`, `6` and `7`
-5. Description of selected data set (**if provided by server**)
-6. Resources associated with selected data set (**if supported by server**)
-6.1. Click on resource to see resource URL `7` and copy to clipboard in case automatic download does not work
-6.2. Check the box of the resource (or several, **if supported by server**) to select for download
-7. Resource url and copy url button if the resource cannot be downloaded (eg link to webpage or an unsupported file format)
-8. `Load Data` to download the selected resources and automatically open them
-9. List all data available sets
-10. List of categories/groups available on the selected CKAN server (**if supported by server**)
-10.1. Check to limit your search to one or several group(s).
-10.2. Double click on a group to get all data sets associated with that group
+　【参考】  
+・DATA GO.JP:https://www.data.go.jp/data/api/3  
+・G空間情報センター: https://www.geospatial.jp/ckan/api/3  
+・東京都オープンデータカタログサイト：https://catalog.data.metro.tokyo.lg.jp/api/3  
+・地質調査総合センターデータカタログ：https://data.gsj.jp/gkan/api/3  
+・姫路市・播磨圏域連携中枢都市圏オープンデータカタログサイト：https://city.himeji.gkan.jp/gkan/api/3  
+・ビッグデータ&オープンデータ・イニシアティブ九州：https://data.bodik.jp/  
 
-![Open Data (CKAN) Browser](img/open-data-ckan-browser.png?raw=true)
+## 概要 / Overview
+QGIS用CKAN-Browserプラグインの拡張・修正版です。
+CKANオープンデータポータルからデータセットを検索・取得し、QGIS上で活用できます。
+
+This is an enhanced and modified version of the CKAN-Browser plugin for QGIS.
+You can search and download datasets from CKAN open data portals and use them in QGIS.
 
 
-#### Add Custom CKAN Server Instance
+## 主な追加・修正機能 / Main Added & Improved Features
+- ローカルSQLiteキャッシュ検索時もカテゴリ（グループ）フィルタが有効
+    - Category (group) filter is available even when searching local SQLite cache
+- CSVファイルの区切り文字自動判定（カンマ・セミコロン・タブ・コロン・スペース対応）
+    - Automatic delimiter detection for CSV files (comma, semicolon, tab, colon, space)
+- CSVファイルの文字コード自動判定（UTF-8/CP932）とQGISレイヤ追加時のencoding自動指定
+    - Automatic encoding detection for CSV files (UTF-8/CP932) and auto-setting when adding as QGIS layer
+- CSVに緯度経度カラムがあれば自動でポイントジオメトリ化
+    - Automatic point geometry creation if latitude/longitude columns exist in CSV
+- UIの一部改善
+    - Some UI improvements
+- バージョン・更新履歴は `metadata_yamamoto.txt`, `Changlog_yamamoto.txt` で管理
+    - Version and changelog are managed in `metadata_yamamoto.txt` and `Changlog_yamamoto.txt`
 
-The list of available CKAN server intances gets prepopulated on every start from https://ckan.org/about/instances/ but is limited to those which provide an API URL.
 
-Custom CKAN server instances can be added manually as well.
+## 使い方 / How to Use
+1. QGISで本プラグインを有効化
+    - Enable this plugin in QGIS
+2. CKANサーバを選択し、検索・カテゴリ・データ形式で絞り込み
+    - Select a CKAN server, filter by search, category, and data format
+3. データセットを選択し、リソースをダウンロード・地図に追加
+    - Select a dataset, download resources, and add them to the map
+4. CSVの場合は自動で区切り文字・文字コード・ジオメトリ判定
+    - For CSV, delimiter, encoding, and geometry are detected automatically
 
-1. Enter the CKAN endpoint, including trailing `v3/`
-2. Test the connection
-3. If the connection succeeded, name the instance and add it to the list
-4. To select an instance for use check the box
-5. Custom instances are marked by a blue background.
-5.1. Right click on a custom instance brings up the `Delete` context menu to remove the instance from the list. **Only custom instances can be deleted.**
 
-![Custom CKAN Server instances](img/ckan-instances.png)
+## 注意事項 / Notes
+- QGIS 3.x/4.x対応
+    - Supports QGIS 3.x/4.x
+- 旧バージョンとの互換性に注意
+    - Be careful about compatibility with older versions
+- 詳細なバージョン履歴は `Changlog_yamamoto.txt` を参照
+    - See `Changlog_yamamoto.txt` for detailed version history
+
+
+## 主な改修PYファイル / Main Modified Python Files
+- `ckan_browser_dialog.py`（UI・検索・カテゴリ・リソース処理）
+    - UI, search, category, resource handling
+- `util.py`（CSV自動判定・レイヤ追加・各種ユーティリティ）
+    - CSV auto-detection, layer addition, utilities
+
+
+## バージョン・更新履歴 / Version & Changelog
+- バージョン情報は `metadata_yamamoto.txt` を参照
+    - See `metadata_yamamoto.txt` for version info
+- 更新履歴は `Changlog_yamamoto.txt` を参照
+    - See `Changlog_yamamoto.txt` for changelog
+
+
+## 連絡先 / Contact
+- GitHub: [yamamoto-ryuzo](https://github.com/yamamoto-ryuzo)
+
+
+
