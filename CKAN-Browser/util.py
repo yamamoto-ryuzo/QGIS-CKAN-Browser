@@ -77,6 +77,46 @@ class Util:
             return True
         return self.create_dir(dir_path)
 
+    def safe_filename(self, name, fallback='item', max_len=100):
+        """Return a filesystem-safe, human-friendly filename derived from name.
+
+        - Normalize Unicode and remove combining marks.
+        - Replace path separators and unsafe characters with underscore.
+        - Collapse repeated underscores and trim.
+        - Return fallback when resulting name is empty.
+        """
+        import re, unicodedata
+        try:
+            if name is None:
+                name = ''
+            name = str(name)
+        except Exception:
+            name = ''
+
+        if not name:
+            name = fallback
+
+        # Normalize and remove combining marks
+        name = unicodedata.normalize('NFKD', name)
+        name = ''.join(ch for ch in name if not unicodedata.category(ch).startswith('M'))
+
+        # Replace path separators and whitespace with underscore
+        name = re.sub(r'[\\/\s]+', '_', name)
+
+        # Replace characters that are not word, dash, dot or underscore
+        name = re.sub(r'[^\w\-\._]', '_', name)
+
+        # Collapse multiple underscores and trim
+        name = re.sub(r'_+', '_', name).strip('._-')
+
+        if not name:
+            name = fallback
+
+        if len(name) > max_len:
+            name = name[:max_len].rstrip('._-')
+
+        return name
+
 
     def check_api_url(self, api_url):
         if(

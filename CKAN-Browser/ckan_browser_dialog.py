@@ -716,10 +716,36 @@ class CKANBrowserDialog(QDialog, FORM_CLASS):
             if resource['name'] is None:
                 resource['name'] = "Unnamed resource"
             self.util.msg_log_debug(u'Bearbeite: {0}'.format(resource['name']))
+            # Build readable folder names: <server>_<urlid>/<safe_title>_<package_id>/<safe_name>_<resource_id>
+            pkg_title = package.get('title') or package.get('name') or package.get('id')
+            res_name = resource.get('name') or resource.get('title') or resource.get('id')
+            safe_pkg = self.util.safe_filename(pkg_title, fallback=package.get('id'))
+            safe_res = self.util.safe_filename(res_name, fallback=resource.get('id'))
+
+            # Derive server folder from current CKAN API URL
+            server_url = getattr(self.settings, 'ckan_url', '') or 'default'
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(server_url)
+                host = parsed.netloc or parsed.path or server_url
+            except Exception:
+                host = server_url
+            import hashlib
+            # create a short stable hash from the full server URL to avoid collisions
+            url_hash = hashlib.sha1(server_url.encode('utf-8')).hexdigest()[:8]
+            safe_host = self.util.safe_filename(host, fallback='server')
+            server_dir = f"{safe_host}_{url_hash}"
+            # debug log to help diagnose server folder generation
+            try:
+                self.util.msg_log_debug(f'server_url={server_url} host={host} server_dir={server_dir} url_hash={url_hash}')
+            except Exception:
+                pass
+
             dest_dir = os.path.join(
                 self.settings.cache_dir,
-                package['id'],
-                resource['id']
+                server_dir,
+                f"{safe_pkg}_{package['id']}",
+                f"{safe_res}_{resource['id']}"
             )
             if self.util.create_dir(dest_dir) is False:
                 self.util.dlg_warning(self.util.tr(u'py_dlg_base_warn_cache_dir_not_created').format(dest_dir))
